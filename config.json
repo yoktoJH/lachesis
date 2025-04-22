@@ -1,0 +1,22 @@
+{
+    "noise.write":{
+        "type":"SLEEP",
+        "frequency":500,
+        "strength":20,
+        "random_strength":false
+    },
+
+    "noise.read":{
+        "type":"NONE",
+        "frequency":500,
+        "strength":20,
+        "random_strength":false
+    },
+
+    "noise.update":{
+        "type":"NONE",
+        "frequency":0,
+        "strength":0,
+        "random_strength":false
+    }
+}
