@@ -29,11 +29,11 @@ set(LACHESIS_ANALYZE  "" CACHE FILEPATH "path to a file to be analyzed")
 
 add_executable(instrumented_executable)
 
-target_sources(instrumented_executable PRIVATE ${LLVMTOOL_ANALYZE})
+target_sources(instrumented_executable PRIVATE ${LACHESIS_ANALYZE})
 
 target_compile_options(instrumented_executable PRIVATE -mllvm -lachesis -g)
 
 target_link_libraries(instrumented_executable 
     PRIVATE 
-        llvm-tool
+        lachesis-lib
 )
