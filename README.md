@@ -20,3 +20,7 @@ then run:
 cmake --build build
 ```
 and hopefully everything should build and link properly
+
+In order to enable one of the analysers uncomment their respective *_init() and *_terminate() functions in [runtime_interface.cpp](./runtime_interface.cpp#L61). Analysers should be preferably run one at a time. 
+To modify noise settings edit definitions at the beginning of [noise.h](./noise.h#L12).
+Frequency and strength should be a number from 0 to 999. Random strength noise has the strenght value randomly chosen from interval (0,strength).
