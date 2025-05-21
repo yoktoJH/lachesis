@@ -1,39 +1,24 @@
 cmake_minimum_required(VERSION 3.28)
+
 project(LAChesis)
 
-add_library(lachesis-lib)
+set(CMAKE_C_COMPILER             "")#llvm-project/build/bin/clang"
+set(CMAKE_CXX_COMPILER             "")#llvm-project/build/bin/clang++
 
-target_include_directories(lachesis-lib PRIVATE .)
 
+add_subdirectory(LAChesis-runtimelib)
 
-target_sources(lachesis-lib PRIVATE 
-        callback.h
-        noise.h
-        runtime_interface.cpp
-        runtime.cpp
-        runtime.h
-        tool.cpp
-        tool.h
-        types.h
-        thread.h
-        thread.cpp
-        analysers/eraser.cpp
-        analysers/atomrace.cpp
-        analysers/fasttrack2.cpp)
+et(LLVMTOOL_ANALYZE  "" CACHE FILEPATH "path to a file to be analyzed")
 
-# set to modified llvm build executables
-set(CMAKE_C_COMPILER             "")
-set(CMAKE_CXX_COMPILER             "")
+add_executable(instrumented)
 
-set(LACHESIS_ANALYZE  "" CACHE FILEPATH "path to a file to be analyzed")
+target_sources(instrumented PRIVATE ${LLVMTOOL_ANALYZE})
 
-add_executable(instrumented_executable)
+target_compile_options(instrumented PRIVATE -mllvm -lachesis -g)
 
-target_sources(instrumented_executable PRIVATE ${LACHESIS_ANALYZE})
-
-target_compile_options(instrumented_executable PRIVATE -mllvm -lachesis -g)
-
-target_link_libraries(instrumented_executable 
+target_link_libraries(instrumented 
     PRIVATE 
-        lachesis-lib
+        llvm-tool
 )
+
+
