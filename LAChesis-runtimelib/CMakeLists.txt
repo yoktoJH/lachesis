@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.28)
 
-add_library(llvm-tool)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+add_library(lachesis)
 
-target_include_directories(llvm-tool PRIVATE .)
+target_include_directories(lachesis PRIVATE .)
 
 set(SOURCE
         callback.h
@@ -18,6 +20,10 @@ set(SOURCE
         analysers/eraser.cpp
         analysers/atomrace.cpp
         analysers/fasttrack2.cpp
+        config.h
+        config.cpp
 )
 
-target_sources(llvm-tool PRIVATE ${SOURCE})
+target_sources(lachesis PRIVATE ${SOURCE})
+
+target_link_libraries(lachesis PUBLIC ryml::ryml)
