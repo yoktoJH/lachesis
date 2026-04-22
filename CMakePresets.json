@@ -1,0 +1,18 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Custom configure preset",
+            "description": "Sets Ninja generator, build and install directory",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "/home/jozinko/bakalarka/llvm-project/build/bin/clang",
+                "CMAKE_CXX_COMPILER": "/home/jozinko/bakalarka/llvm-project/build/bin/clang++",
+                "LLVMTOOL_ANALYZE": ""
+            }
+        }
+    ]
+}
