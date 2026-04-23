@@ -1,29 +1,10 @@
 #ifndef __LLVMTOOL_LACHESIS_CALLBACK__
 #define __LLVMTOOL_LACHESIS_CALLBACK__
 
+#include "lachesis_types.h"
 #include "types.h"
 #include <vector>
 
-enum class memory_operation_type
-{
-    READ,
-    WRITE,
-    UPDATE,
-};
-
-enum class memory_callback_type
-{
-    A,
-    AV,
-    AVL,
-    AVO,
-    AVIO,
-};
-
-enum class lock_operation_type {
-    LOCK,
-    UNLOCK
-};
 
 struct memory_callback
 {
@@ -31,7 +12,7 @@ struct memory_callback
     virtual ~memory_callback() = default;
 };
 
-template <typename T, memory_callback_type C>
+template <typename T, memory_callback_t C>
 struct memory_callback_impl : memory_callback
 {
     T function;
@@ -52,23 +33,23 @@ struct memory_callback_impl : memory_callback
 
     void call(THREADID tid, ADDRINT addr, UINT32 size, const VARIABLE &variable, const LOCATION &location, BOOL is_local, ADDRINT ins) override
     {
-        if constexpr (C == memory_callback_type::A)
+        if constexpr (C == memory_callback_t::A)
         {
             function(tid, addr, size);
         }
-        else if constexpr (C == memory_callback_type::AV)
+        else if constexpr (C == memory_callback_t::AV)
         {
             function(tid, addr, size, variable);
         }
-        else if constexpr (C == memory_callback_type::AVL)
+        else if constexpr (C == memory_callback_t::AVL)
         {
             function(tid, addr, size, variable, location);
         }
-        else if constexpr (C == memory_callback_type::AVO)
+        else if constexpr (C == memory_callback_t::AVO)
         {
             function(tid, addr, size, variable, is_local);
         }
-        else if constexpr (C == memory_callback_type::AVIO)
+        else if constexpr (C == memory_callback_t::AVIO)
         {
             function(tid, addr, size, variable, ins, is_local);
         }
