@@ -283,10 +283,8 @@ template <typename N>
 typename std::enable_if<std::is_integral<N>::value, std::string>::type
 hexstr(N number, int width = 0)
 {
-  std::string buffer;
-  buffer.resize(width == 0? 20:width);
-  sprintf(buffer.data(),"0x%0*lx",width,number);
-  return buffer;
+  std::string s = std::format("{:{}x}", number,width);
+  return s;
 }
 
 /**
