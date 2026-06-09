@@ -149,11 +149,11 @@ extern "C"
 
     void lachesis_before_join(pthread_t newthread)
     {
-        call_join_callbacks(tid_to_THREADID(std::thread::id(newthread)), HookPosition::Before);
+        call_join_callbacks(tid_to_THREADID(newthread), HookPosition::Before);
     }
 
     void lachesis_after_join(pthread_t newthread)
     {
-        call_join_callbacks(tid_to_THREADID(std::thread::id(newthread)), HookPosition::After);
+        call_join_callbacks(tid_to_THREADID(newthread), HookPosition::After);
     }
 }

@@ -40,6 +40,7 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <format>
 //#include "pin.H"
 
 /// this is from pin
@@ -97,6 +98,8 @@ typedef INT64 ADDRDELTA;
 
 // Definitions of basic types
 typedef ADDRINT index_t;
+
+typedef pthread_t tid_t;
 
 // Special values of basic types
 #define INVALID_INDEX (index_t)-1;

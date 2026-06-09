@@ -42,7 +42,7 @@ void call_memory_callbacks(memory_operation_t op, HookPosition position, ADDRINT
     const VARIABLE variable = {var_name, var_type, var_offset};
     const LOCATION location = {loc_file, loc_line};
 
-    const THREADID TID = tid_to_THREADID(std::this_thread::get_id());
+    const THREADID TID = tid_to_THREADID(get_this_thread_id());
 
     auto callbacks = &callbacks_storage<std::unique_ptr<memory_callback> >::after;
 
@@ -67,7 +67,7 @@ void call_thread_create_callbacks(THREADID TID) {
 }
 
 void call_thread_create_callbacks() {
-    call_thread_create_callbacks(tid_to_THREADID(std::this_thread::get_id()));
+    call_thread_create_callbacks(tid_to_THREADID(get_this_thread_id()));
 }
 
 
@@ -90,7 +90,7 @@ void register_after_lock_callback(LOCKFUNPTR callback, const lock_operation_t op
 void call_lock_callbacks(void *lock_ptr, const lock_operation_t op, HookPosition position) {
     LOCK lock;
     lock.q_set(lock_ptr_to_index(lock_ptr));
-    const THREADID tid = tid_to_THREADID(std::this_thread::get_id());
+    const THREADID tid = tid_to_THREADID(get_this_thread_id());
 
     auto callbacks = &callbacks_storage<LOCKFUNPTR>::after;
 
@@ -117,7 +117,7 @@ void register_thread_forked_callback(FORKFUNPTR callback) {
 }
 
 void call_thread_forked_callbacks(THREADID newTID) {
-    THREADID TID = tid_to_THREADID(std::this_thread::get_id());
+    THREADID TID = tid_to_THREADID(get_this_thread_id());
     for (const auto callback: thread_forked_callbacks) {
         callback(TID, newTID);
     }
@@ -134,7 +134,7 @@ void register_join_callback(JOINFUNPTR callback, const HookPosition position) {
 
 
 void call_join_callbacks(THREADID joinedTID, HookPosition position) {
-    THREADID TID = tid_to_THREADID(std::this_thread::get_id());
+    THREADID TID = tid_to_THREADID(get_this_thread_id());
     auto callbacks = &callbacks_storage<JOINFUNPTR>::after;
 
     if (position == HookPosition::Before) {

@@ -11,12 +11,15 @@
 #include "runtime.h"
 #include "thread.h"
 
+const tid_t get_this_thread_id(){
+    return pthread_self();
+}
 
 static std::mutex tid_map_mutex;
-static std::map<std::thread::id, THREADID> realid_to_tid;
-static std::map<THREADID, std::thread::id> tid_to_realid;
+static std::map<tid_t, THREADID> realid_to_tid;
+static std::map<THREADID, tid_t> tid_to_realid;
 
-THREADID tid_to_THREADID(const std::thread::id realid)
+THREADID tid_to_THREADID(const tid_t realid)
 {
     std::lock_guard lock(tid_map_mutex);
     if (const auto tid_i = realid_to_tid.find(realid); tid_i != realid_to_tid.end())
@@ -37,7 +40,7 @@ THREADID tid_to_THREADID(const std::thread::id realid)
     exit(1);
 }
 
-std::thread::id THREADID_to_tid(THREADID id)
+tid_t THREADID_to_tid(THREADID id)
 {
     std::lock_guard lock(tid_map_mutex);
     if (const auto tid_i = tid_to_realid.find(id); tid_i != tid_to_realid.end())
@@ -64,7 +67,7 @@ static std::map<THREADID, thread_info> thread_map;
 
 void add_thread_info(const THREADID newTID, char *file, int32_t line)
 {
-    const THREADID TID = tid_to_THREADID(std::this_thread::get_id());
+    const THREADID TID = tid_to_THREADID(get_this_thread_id());
 
     {
         std::lock_guard lock(thread_info_mutex);
@@ -79,7 +82,7 @@ void add_thread_info(const THREADID newTID, char *file, int32_t line)
 
 void stacktrace_add_stackframe(char *function_name)
 {
-    const THREADID TID = tid_to_THREADID(std::this_thread::get_id());
+    const THREADID TID = tid_to_THREADID(get_this_thread_id());
     {
         std::unique_lock lock(thread_info_mutex);
         thread_info &info = thread_map[TID];
@@ -96,7 +99,7 @@ void stacktrace_add_stackframe(char *function_name)
 void stacktrace_remove_stackframe()
 {
     std::lock_guard lock(thread_info_mutex);
-    const THREADID TID = tid_to_THREADID(std::this_thread::get_id());
+    const THREADID TID = tid_to_THREADID(get_this_thread_id());
 
     if (thread_info &info = thread_map.at(TID); info.stacktrace.size() == 1)
     {
@@ -111,7 +114,7 @@ void stacktrace_remove_stackframe()
 void stacktrace_add_location_info(char *file, int32_t line)
 {
     std::lock_guard lock(thread_info_mutex);
-    const THREADID TID = tid_to_THREADID(std::this_thread::get_id());
+    const THREADID TID = tid_to_THREADID(get_this_thread_id());
     thread_info &info = thread_map.at(TID);
 
     info.stacktrace.back().file_name = file;
@@ -121,7 +124,7 @@ void stacktrace_add_location_info(char *file, int32_t line)
 void stacktrace_remove_location_info()
 {
     std::lock_guard lock(thread_info_mutex);
-    const THREADID TID = tid_to_THREADID(std::this_thread::get_id());
+    const THREADID TID = tid_to_THREADID(get_this_thread_id());
     thread_info &info = thread_map.at(TID);
 
     info.stacktrace.back().file_name = no_file;
@@ -157,7 +160,7 @@ void *new_thread_prelude(void *arg)
     return ret;
 }
 
-int start_new_thread(pthread_t *thread, const pthread_attr_t *attr,
+int start_new_thread(tid_t *thread, const pthread_attr_t *attr,
                      void *(*start_routine)(void *), void *arg, char *file_name, int32_t line)
 {
     new_thread_data *data = new new_thread_data;
@@ -166,8 +169,7 @@ int start_new_thread(pthread_t *thread, const pthread_attr_t *attr,
     int retval = pthread_create(thread, attr, &new_thread_prelude, data);
     if (retval == 0)
     {
-        const std::thread::id ntid(*thread);
-        const THREADID newTID = tid_to_THREADID(ntid);
+        const THREADID newTID = tid_to_THREADID(*thread);
         add_thread_info(newTID, file_name, line);
         call_thread_create_callbacks(newTID);
         call_thread_forked_callbacks(newTID);
