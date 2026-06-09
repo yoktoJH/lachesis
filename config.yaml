@@ -1,0 +1,35 @@
+analysis: "atomrace"
+static_analysis_file: "static.yml"
+noise:
+  default:
+    write:
+      type: "wait"
+      frequency: 500
+      strength: 20
+      random: false
+    read:
+      type: "sleep"
+      frequency: 320
+      strength: 200
+      random: false
+    update:
+      type: "debug"
+      frequency: 500
+      strength: 20
+      random: false
+  static_detections:
+    write:
+      type: "wait"
+      frequency: 500
+      strength: 20
+      random: false
+    read:
+      type: "sleep"
+      frequency: 320
+      strength: 200
+      random: false
+    update:
+      type: "debug"
+      frequency: 500
+      strength: 20
+      random: false
