@@ -1,14 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
 
-
-#set(CMAKE_C_COMPILER             "/home/jozinko/bakalarka/llvm-project/build/bin/clang")#llvm-project/build/bin/clang"
-#set(CMAKE_CXX_COMPILER             "/home/jozinko/bakalarka/llvm-project/build/bin/clang++")#llvm-project/build/bin/clang++
-
 project(LAChesis)
 
 add_subdirectory(LAChesis-runtimelib)
 
-#set(LLVMTOOL_ANALYZE "" CACHE FILEPATH "path to a file to be analyzed")
 
 add_executable(instrumented)
 
