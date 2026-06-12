@@ -3,3 +3,5 @@ build
 .idea
 *.code-workspace
 benchmark_build
+CMakePresets.json
+benchexec-tmp
