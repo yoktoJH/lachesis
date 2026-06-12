@@ -12,7 +12,6 @@
 #include <iostream>
 #include <cstring>
 
-
 class inverse_noise_lock
 {
 
@@ -55,14 +54,28 @@ random_number(T min, T max)
 
 // generator of inverse noise
 static inverse_noise_lock inverse_lock;
-
+static thread_local bool active_noise = false;
+thread_local std::chrono::time_point<std::chrono::steady_clock> end = std::chrono::steady_clock::now();
 
 struct noise_generator
 {
-  static void insert_noise(noise_type noise_t, std::uint32_t frequency, std::uint32_t strength_templ, bool random_strength)
+  static void insert_noise(noise_type noise_t, std::uint32_t frequency, std::uint32_t strength, bool random_strength)
   {
     // wait for the end of inverse noise
-    inverse_lock.wait();
+    if (!active_noise)
+    {
+      inverse_lock.wait();
+    }
+    else
+    {
+      if (end >= std::chrono::steady_clock::now())
+      {
+        //still within this threads generated noise
+        return;
+      }
+      active_noise = false;
+      inverse_lock.wait();
+    }
 
     if (noise_t == noise_type::NONE)
     {
@@ -74,11 +87,10 @@ struct noise_generator
       return;
     }
     // std::cout<<"noise is generated"<<std::endl;
-    std::uint32_t strength = strength_templ;
-
+    
     if (random_strength)
     {
-      strength = random_number<std::uint32_t>(0, strength_templ);
+      strength = random_number<std::uint32_t>(0, strength);
     }
 
     if (noise_t == noise_type::SLEEP)
@@ -87,7 +99,7 @@ struct noise_generator
       std::this_thread::sleep_for(std::chrono::milliseconds(strength));
     }
 
-    if (noise_t == noise_type::YIELD)
+    else if (noise_t == noise_type::YIELD)
     {
       while (strength-- > 0)
       {
@@ -95,7 +107,7 @@ struct noise_generator
       }
     }
 
-    if (noise_t == noise_type::WAIT)
+    else if (noise_t == noise_type::WAIT)
     {
       auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(strength);
       while (std::chrono::steady_clock::now() < end)
@@ -104,74 +116,42 @@ struct noise_generator
       }
     }
 
-    if (noise_t == noise_type::INVERSE)
+    else if (noise_t == noise_type::INVERSE)
     {
-      inverse_noise(frequency, strength_templ, random_strength);
+      end = inverse_lock.block_other_threads(std::chrono::milliseconds(strength));
+      active_noise = true;
     }
 
-    if (noise_t == noise_type::DEBUG)
+    else if (noise_t == noise_type::DEBUG)
     {
       std::cout << "frequency= " << frequency << " | strength= " << strength << " | random= " << random_strength << "\n";
     }
   }
-
-  static void inverse_noise(std::uint32_t frequency, std::uint32_t strength, bool random_strength)
-  {
-
-    thread_local bool active_noise = false;
-    thread_local std::chrono::time_point<std::chrono::steady_clock> end;
-
-    if (active_noise)
-    {
-      if (end < std::chrono::steady_clock::now())
-      {
-        active_noise = false;
-      }
-
-      return;
-    }
-
-    if (random_number(0, 999) > frequency)
-    {
-      // no noise to be generated, wait like others
-      inverse_lock.wait();
-      return;
-    }
-
-    if (random_strength)
-    {
-      strength = random_number<std::uint32_t>(0, strength);
-    }
-    // generate inverse noise
-    end = inverse_lock.block_other_threads(std::chrono::milliseconds(strength));
-    active_noise = true;
-  }
 };
 
-
 template <memory_operation_t op>
-void insert_noise(char * name, int32_t line)
+void insert_noise(char *name, int32_t line)
 {
-  
-  std::vector<memop_filter>& filters = get_filters(op);
+
+  std::vector<memop_filter> &filters = get_filters(op);
   noise_config_t noise = get_default_noise(op);
-  for (memop_filter& filter: filters){
-    if (filter.line == line && std::strcmp(filter.variable_name.c_str(),name)==0){
+  for (memop_filter &filter : filters)
+  {
+    if (filter.line == line && std::strcmp(filter.variable_name.c_str(), name) == 0)
+    {
       noise = get_targeted_noise(op);
       break;
     }
   }
 
-  noise_generator::insert_noise(noise.type,noise.frequency,noise.strength,noise.random);
-
+  noise_generator::insert_noise(noise.type, noise.frequency, noise.strength, noise.random);
 }
 
-struct noise_filter{
+struct noise_filter
+{
   memory_operation_t op;
-  char* name;
+  char *name;
   int32_t line;
 };
-
-
 
 #endif //__LLVMTOOL_LACHESIS_NOISE__
