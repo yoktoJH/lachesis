@@ -3,9 +3,9 @@
 #include "callback.h"
 #include "lachesis_types.h"
 #include "config.h"
+#include "utils.h"
 
 #include <cstdint>
-#include <random>
 #include <mutex>
 #include <thread>
 #include <atomic>
@@ -36,21 +36,7 @@ public:
   }
 };
 
-template <typename T>
-typename std::enable_if<std::is_integral<T>::value, T>::type
-random_number(T min, T max)
-{
 
-  static std::random_device rd;
-  static std::ranlux24_base gen(rd());
-
-  static std::mutex random_lock;
-  std::uniform_int_distribution<> distrib(min, max);
-
-  const std::lock_guard guard(random_lock);
-
-  return distrib(gen);
-}
 
 // generator of inverse noise
 static inverse_noise_lock inverse_lock;

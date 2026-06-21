@@ -36,6 +36,7 @@ set(SOURCE
         analysers/fasttrack2.cpp
         config.h
         config.cpp
+        utils.h
 )
 
 target_sources(lachesis PRIVATE ${SOURCE})
