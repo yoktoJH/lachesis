@@ -24,6 +24,7 @@ set(SOURCE
         callback.h
         noise.h
         runtime_interface.cpp
+        sv-comp_impl.cpp
         runtime.cpp
         runtime.h
         tool.cpp
