@@ -97,31 +97,29 @@ memory_operation_t to_memory_op(std::string_view op)
     return memory_operation_t::UPDATE;
 }
 
-void load_filter(ryml::NodeRef node, std::map<memory_operation_t, std::vector<memop_filter>>& filters)
+void load_filter(ryml::NodeRef node, std::map<memory_operation_t, std::vector<memop_filter>> &filters)
 {
     std::string name;
-    node["base"]["name"]>>name;
+    node["base"]["name"] >> name;
     std::string op;
     {
-    auto n=node["access1"];
+        auto n = node["access1"];
 
-    n["kind"]>>op;
-    memop_filter filter{};
-    filter.variable_name = name;
-    n["location"]["file"]>>filter.file;
-    n["location"]["line"]>>filter.line;
-    filters[to_memory_op(op)].emplace_back(std::move(filter));
+        n["kind"] >> op;
+        memop_filter filter{};
+        filter.variable_name = name;
+        n["location"]["file"] >> filter.file;
+        n["location"]["line"] >> filter.line;
+        filters[to_memory_op(op)].emplace_back(std::move(filter));
     }
 
-    auto n=node["access2"];
-    n["kind"]>>op;
+    auto n = node["access2"];
+    n["kind"] >> op;
     memop_filter filter{};
     filter.variable_name = name;
-    n["location"]["file"]>>filter.file;
-    n["location"]["line"]>>filter.line;
+    n["location"]["file"] >> filter.file;
+    n["location"]["line"] >> filter.line;
     filters[to_memory_op(op)].emplace_back(std::move(filter));
-    
-
 }
 
 void load_config()
@@ -139,31 +137,37 @@ void load_config()
     config["analysis"] >> global_config.analysis;
     load_noise_config(config["noise"]["default"], global_config.default_noise);
     load_noise_config(config["noise"]["static_detections"], global_config.static_analysis_noise);
-    
-    global_config.config_strings.emplace_back(read_file(static_analysis_file.c_str()));
-    std::string &static_results_string = global_config.config_strings.back();
-    if (static_results_string.length() == 0)
-    {
-        return;
-    }
 
-    ryml::Tree static_config = ryml::parse_in_place(ryml::to_substr(static_results_string));
-    
-    int detected_races = static_config["data_races"].num_children();
-    for (int i = 0; i < detected_races; i++)
+    if (std::strlen(static_analysis_file.c_str()) != 0)
     {
-        load_filter(static_config["data_races"][i],global_config.filters);
+        global_config.config_strings.emplace_back(read_file(static_analysis_file.c_str()));
+        std::string &static_results_string = global_config.config_strings.back();
+        if (static_results_string.length() == 0)
+        {
+            return;
+        }
+
+        ryml::Tree static_config = ryml::parse_in_place(ryml::to_substr(static_results_string));
+
+        int detected_races = static_config["data_races"].num_children();
+        for (int i = 0; i < detected_races; i++)
+        {
+            load_filter(static_config["data_races"][i], global_config.filters);
+        }
     }
 }
 
-std::vector<memop_filter>& get_filters(memory_operation_t op){
+std::vector<memop_filter> &get_filters(memory_operation_t op)
+{
     return global_config.filters[op];
 }
 
-noise_config_t& get_default_noise(memory_operation_t op){
+noise_config_t &get_default_noise(memory_operation_t op)
+{
     return global_config.default_noise[op];
 }
 
-noise_config_t& get_targeted_noise(memory_operation_t op){
+noise_config_t &get_targeted_noise(memory_operation_t op)
+{
     return global_config.static_analysis_noise[op];
 }
