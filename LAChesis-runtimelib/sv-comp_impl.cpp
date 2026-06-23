@@ -15,6 +15,15 @@ extern "C"{
         global_lock.unlock();
     }
 
+
+    void __VERIFIER_atomic_aquire(){
+        global_lock.lock();
+    }
+    
+    void  __VERIFIER_atomic_release(){
+        global_lock.unlock();
+    }
+    
     unsigned long __VERIFIER_nondet_ulong(){
         int type = random_number(0,3);
         switch (type)
@@ -54,8 +63,7 @@ extern "C"{
     void __VERIFIER_assert_lachesis(int expression){
         if (!expression)
         {
-            CONSOLE_NOPREFIX("\n Data race (assert failed) \n");        
-            std::exit(1);
+            CONSOLE_NOPREFIX("\n Assert failed \n");        
         }
     }
 
