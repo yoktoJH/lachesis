@@ -79,7 +79,7 @@ extern "C"
     void lachesis_init()
     {
         load_config();
-        atomrace_init();
+        // atomrace_init();
         // eraser_init();
         // fasttrack_init();
     }

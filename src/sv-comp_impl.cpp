@@ -16,11 +16,11 @@ extern "C"{
     }
 
 
-    void __VERIFIER_atomic_aquire(){
+    void __VERIFIER_atomic_acquire_lachesis(){
         global_lock.lock();
     }
     
-    void  __VERIFIER_atomic_release(){
+    void  __VERIFIER_atomic_release_lachesis(){
         global_lock.unlock();
     }
     
@@ -53,12 +53,17 @@ extern "C"{
         return __VERIFIER_nondet_ulong();
     }
 
-    void __VERIFIER_nondet_memory(void *mem, size_t size) {
-        unsigned char *p = (unsigned char *)mem;
-        for (size_t i = 0; i < size; i++) {
-            p[i] = __VERIFIER_nondet_uchar();
+    unsigned char __VERIFIER_nondet_bool(){
+        return (bool) random_number(0,1);
     }
-}
+
+    void __VERIFIER_nondet_memory(void *mem, size_t size){
+        unsigned char *p = (unsigned char *)mem;
+        for (size_t i = 0; i < size; i++) 
+        {
+            p[i] = __VERIFIER_nondet_uchar();
+        }
+    }
 
     void __VERIFIER_assert_lachesis(int expression){
         if (!expression)

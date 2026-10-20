@@ -1,5 +1,6 @@
 
 #include "config.h"
+#include "analysers/analysers.h"
 
 #include <iostream>
 #include <fstream>
@@ -122,6 +123,22 @@ void load_filter(ryml::NodeRef node, std::map<memory_operation_t, std::vector<me
     filters[to_memory_op(op)].emplace_back(std::move(filter));
 }
 
+void run_analysis_init(){
+    if (global_config.analysis == "atomrace")
+    {
+        atomrace_init();
+    } 
+    else if (global_config.analysis == "eraser")
+    {
+        eraser_init();
+    } 
+    else if (global_config.analysis == "fasttrack")
+    {
+        fasttrack_init();
+    }
+}
+
+
 void load_config()
 {
     global_config.config_strings.emplace_back(read_file("config.yaml"));
@@ -135,6 +152,8 @@ void load_config()
     std::string static_analysis_file;
     config["static_analysis_file"] >> static_analysis_file;
     config["analysis"] >> global_config.analysis;
+    //TODOrun the init function of the analysi
+    
     load_noise_config(config["noise"]["default"], global_config.default_noise);
     load_noise_config(config["noise"]["static_detections"], global_config.static_analysis_noise);
 

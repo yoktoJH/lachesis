@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.28)
 
 project(LAChesis)
 
-add_subdirectory(LAChesis-runtimelib)
-
+add_subdirectory(src)
+add_subdirectory(llvm-pass)
 
 add_executable(instrumented)
 
