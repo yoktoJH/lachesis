@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-CODE="$(realpath "$1")"
-REPORT="$(realpath "$2")"
+REPORT="$(realpath "$1")"
+CODE="$(realpath "$2")"
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$script_dir"
