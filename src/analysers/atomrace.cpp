@@ -127,7 +127,7 @@ VOID beforeMemoryAccess(Operation op, THREADID tid, ADDRINT addr,
     // if the threads are different, they must be)
     if (it->second.op == WRITE || op == WRITE)
     { // One of the concurrent accesses is a write access, report a data race
-      CONSOLE_NOPREFIX("Data race on memory address " + hexstr(addr)
+      CONSOLE_PREFIX("Data race on memory address " + hexstr(addr)
         + " detected.\n"
         + "  Thread " + decstr(it->second.thread)
         + ((it->second.op == WRITE) ? " written to " : " read from ")

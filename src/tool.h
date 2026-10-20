@@ -153,6 +153,6 @@ API_FUNCTION VOID TM_AfterTxWrite(AFTERTXWRITEFUNPTR callback);
 #define PIN_MutexInit(mutex) ((void)0)
 
 #define CONSOLE_NOPREFIX(message) std::cout << message
-
+#define CONSOLE_PREFIX(message) std::cout <<"[lachesis] " << message
 
 #endif //__LLVMTOOL_LACHESIS_TOOLAPI__
