@@ -9,8 +9,7 @@
 #include <vector>
 #include <string_view>
 
-#include <ryml.hpp>
-#include <ryml_std.hpp>
+#include <ryml_all.hpp>
 
 struct config
 {
@@ -42,20 +41,19 @@ noise_type to_noise_type(std::string_view type)
     {
         return noise_type::WAIT;
     }
-    if (type == "sleep")
+    else if (type == "sleep")
     {
         return noise_type::SLEEP;
     }
-    if (type == "yield")
+    else if (type == "yield")
     {
         return noise_type::YIELD;
     }
-
-    if (type == "inverse")
+    else if (type == "inverse")
     {
         return noise_type::INVERSE;
     }
-    if (type == "debug")
+    else if (type == "debug")
     {
         return noise_type::DEBUG;
     }

@@ -44,7 +44,7 @@ PassPluginLibraryInfo getLachesisPluginInfo(){
     );
     
     PB.registerOptimizerLastEPCallback(
-      [](ModulePassManager &MPM, OptimizationLevel Level) {
+      [](ModulePassManager &MPM, OptimizationLevel Level, llvm::ThinOrFullLTOPhase) {
         MPM.addPass(LachesisPass());
     });
   };

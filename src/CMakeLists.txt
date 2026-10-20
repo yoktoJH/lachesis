@@ -1,26 +1,31 @@
 cmake_minimum_required(VERSION 3.28)
 
-include(FetchContent)
+#include(FetchContent)
 
-set(RYML_REPO_URL https://github.com/biojppm/rapidyaml CACHE STRING "")
-set(RYML_BRANCH_NAME master CACHE STRING "")
-set(RYML_RELEASE_COMMIT 85bfe56e32b1cfe715aa1c39885b1b10761e7482 CACHE STRING "")
-message(STATUS "FetchContent from repo: ${RYML_REPO_URL}")
-message(STATUS "FetchContent from branch: ${RYML_BRANCH_NAME}")
-message(STATUS "FetchContent of commit: ${RYML_RELEASE_COMMIT} : v0.15.2")
-include(FetchContent)
-FetchContent_Declare(ryml
-    GIT_REPOSITORY ${RYML_REPO_URL}
-    GIT_TAG ${RYML_RELEASE_COMMIT}
-    GIT_SHALLOW FALSE  # ensure submodules are checked out
+# set(RYML_REPO_URL https://github.com/biojppm/rapidyaml CACHE STRING "")
+# set(RYML_BRANCH_NAME master CACHE STRING "")
+# set(RYML_RELEASE_COMMIT 85bfe56e32b1cfe715aa1c39885b1b10761e7482 CACHE STRING "")
+# message(STATUS "FetchContent from repo: ${RYML_REPO_URL}")
+# message(STATUS "FetchContent from branch: ${RYML_BRANCH_NAME}")
+# message(STATUS "FetchContent of commit: ${RYML_RELEASE_COMMIT} : v0.15.2")
+# include(FetchContent)
+# FetchContent_Declare(ryml
+#     GIT_REPOSITORY ${RYML_REPO_URL}
+#     GIT_TAG ${RYML_RELEASE_COMMIT}
+#     GIT_SHALLOW FALSE  # ensure submodules are checked out
+# )
+# FetchContent_MakeAvailable(ryml)
+set(RYML_SOURCE
+    ryml/ryml_all.cpp
+    ryml/ryml_all.hpp
 )
-FetchContent_MakeAvailable(ryml)
+
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_library(lachesis)
 
-target_include_directories(lachesis PRIVATE .)
+target_include_directories(lachesis PRIVATE . ./ryml)
 
 set(SOURCE
         callback.h
@@ -42,6 +47,6 @@ set(SOURCE
         utils.h
 )
 
-target_sources(lachesis PRIVATE ${SOURCE})
+target_sources(lachesis PRIVATE ${SOURCE} ${RYML_SOURCE})
 
-target_link_libraries(lachesis PUBLIC ryml::ryml)
+#target_link_libraries(lachesis PUBLIC ryml::ryml)
