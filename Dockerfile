@@ -48,9 +48,9 @@ RUN dpkg --add-architecture i386 \
 
 WORKDIR /lachesis
 
-COPY ../../src /lachesis/src
-COPY ../../llvm-pass /lachesis/llvm-pass
-COPY ../../CMakeLists.txt /lachesis/
+COPY src /lachesis/src
+COPY llvm-pass /lachesis/llvm-pass
+COPY CMakeLists.txt /lachesis/
 COPY docker_build.sh /lachesis/
 
 ENTRYPOINT [ "./docker_build.sh" ]
