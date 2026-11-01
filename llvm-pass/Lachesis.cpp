@@ -132,25 +132,29 @@ static int getFileLine(Instruction &Inst) {
 static void getRuntimeFunctions(FunctionCallee &BeforeFunc,
                                 FunctionCallee &AfterFunc, Instruction &Inst,
                                 Module *Module, FunctionType *RuntimeMemType) {
+  std::string BeforeFuncName = "lachesis_before";
+  std::string AfterFuncName = "lachesis_after";
+  if (Inst.isAtomic()){
+    BeforeFuncName += "_atomic";  
+    AfterFuncName +="_atomic";
+  }
   if (Inst.getOpcode() == Instruction::Load) {
 
-    BeforeFunc =
-        Module->getOrInsertFunction("lachesis_before_read", RuntimeMemType);
-
-    AfterFunc =
-        Module->getOrInsertFunction("lachesis_after_read", RuntimeMemType);
+    BeforeFuncName += "_read";  
+    AfterFuncName +="_read";
 
   } else if (Inst.getOpcode() == Instruction::Store) {
 
-    BeforeFunc =
-        Module->getOrInsertFunction("lachesis_before_write", RuntimeMemType);
+    BeforeFuncName += "_write";  
+    AfterFuncName +="_write";
+
+  }
+
+  BeforeFunc =
+        Module->getOrInsertFunction(BeforeFuncName, RuntimeMemType);
 
     AfterFunc =
-        Module->getOrInsertFunction("lachesis_after_write", RuntimeMemType);
-
-  } else {
-    // here go atomics if they are ever impelementede  good engrish btw
-  }
+        Module->getOrInsertFunction(AfterFuncName, RuntimeMemType);
 }
 
 static void instrumentLoadStore(inst_iterator I, LLVMContext &context,
@@ -159,7 +163,6 @@ static void instrumentLoadStore(inst_iterator I, LLVMContext &context,
                                 global_variable_map &GlobalVariables) {
 
   Instruction &Inst = *I;
-
   // read(ADDRINT=uint64_t 1 addr, uint32_t 2 size, char* 3 var_name, char* 4
   // var_type, uint32_t 5 var_offset, char* 6 loc_file,int32_t 7 loc_line, bool
   // 8 is_local, ADDRINT 9 ins)
@@ -323,22 +326,29 @@ static void insertThreadCreate(inst_iterator I, LLVMContext &context,
   Inst->replaceAllUsesWith(lachesisThreadCreate);
   deadInst.insert(Inst);
 }
+//svcomp ----------------------------------------------------
+static void insertVerifierAtomic(inst_iterator &I, LLVMContext &context,
+                              Module *Module) {
 
-static void insertVerifierImpl(inst_iterator I, LLVMContext &context,
-                                 Module *Module,StringRef verifierFuncName) {
-  
-  CallInst *Inst = cast<CallInst>(&*I);
-  FunctionType *OriginalType = Inst->getFunctionType();
+  static FunctionType *FnType =
+      FunctionType::get(Type::getVoidTy(context), {}, false);
 
-  FunctionCallee Func =
-      Module->getOrInsertFunction(verifierFuncName, OriginalType);
+  inst_iterator II = I;
+  ++II;
 
-  auto Builder = IRBuilder<>(Inst);
-  CallInst *lachesisVerifierImpl =
-      Builder.CreateCall(Func, {});
-  Inst->replaceAllUsesWith(lachesisVerifierImpl);
-  deadInst.insert(Inst);
+  static auto BeforeFunction =
+      Module->getOrInsertFunction("__VERIFIER_atomic_begin", FnType);
+  static auto AfterFunction =
+      Module->getOrInsertFunction("__VERIFIER_atomic_end", FnType);
+
+  auto BeforeBuilder = IRBuilder<>(&*I);
+  auto AfterBuilder = IRBuilder<>(&*II);
+  BeforeBuilder.CreateCall(BeforeFunction,
+                           {});
+  AfterBuilder.CreateCall(
+      AfterFunction, {});
 }
+
 
 static void insertVerifierAssert(inst_iterator I, LLVMContext &context,
                                  Module *Module) {
@@ -355,8 +365,7 @@ static void insertVerifierAssert(inst_iterator I, LLVMContext &context,
   Inst->replaceAllUsesWith(lachesisVerifierAssert);
   deadInst.insert(Inst);
 }
-
-
+//svcomp ----------------------------------------------------
 
 static void instrumentLocking(inst_iterator &I, LLVMContext &context,
                               Module *Module, bool isWriteLock) {
@@ -460,47 +469,45 @@ static void instrumentFunctionCall(inst_iterator &I, LLVMContext &context,
   Builder.CreateCall(BeforeFunction,
                      {LocFile, Builder.getInt32(getFileLine(Inst))});
   IRBuilder<>(&*II).CreateCall(AfterFunction, {});
-
-  if (Inst.getCalledFunction()->getName().compare(ThreadCreateFuncName) == 0) {
+  
+  auto FuncName = Inst.getCalledFunction()->getName();
+  if (FuncName.compare(ThreadCreateFuncName) == 0) {
     insertThreadCreate(I, context, Module, LocFile);
-    // skip the thread creation callback
-    ++I;
-  } else if (Inst.getCalledFunction()->getName().compare(LockMutexFuncName) ==
+
+  } else if (FuncName.compare(LockMutexFuncName) ==
                  0 ||
              Inst.getCalledFunction()->getName().compare(
                  WrLockRWLockFuncName) == 0) {
 
     instrumentLocking(I, context, Module, true);
-    ++I;
-  } else if (Inst.getCalledFunction()->getName().compare(
+
+  } else if (FuncName.compare(
                  RdLockRWLockFuncName) == 0) {
 
     instrumentLocking(I, context, Module, false);
-    ++I;
-  } else if (Inst.getCalledFunction()->getName().compare(UnlockMutexFuncName) ==
+
+  } else if (FuncName.compare(UnlockMutexFuncName) ==
                  0 ||
              Inst.getCalledFunction()->getName().compare(
                  UnlockRWLockFuncName) == 0) {
 
     instrumentUnlocking(I, context, Module);
-    ++I;
-  } else if (Inst.getCalledFunction()->getName().compare(JoinThreadFuncName) ==
+
+  } else if (FuncName.compare(JoinThreadFuncName) ==
              0) {
     instrumentJoin(I, context, Module);
-    ++I;
-  } else if (Inst.getCalledFunction()->getName().contains(
+//svcomp ----------------------------------------------------
+  } else if (FuncName.contains(
                  "__VERIFIER_assert")) {
     insertVerifierAssert(I, context, Module);
-    ++I;
-  } else if (Inst.getCalledFunction()->getName().contains("__VERIFIER_atomic_acquire")){
-    errs() << "atomic acquire is replaced\n ";
-    insertVerifierImpl(I, context, Module,"__VERIFIER_atomic_acquire_lachesis");
-    ++I;
-  } else if (Inst.getCalledFunction()->getName().contains("__VERIFIER_atomic_release")){
-    errs() << "atomic acquire is replaced\n ";
-    insertVerifierImpl(I, context, Module,"__VERIFIER_atomic_release_lachesis");
-    ++I;
+  }else if (FuncName.contains("__VERIFIER_atomic") 
+            && !FuncName.contains("__VERIFIER_atomic_begin") 
+            && !FuncName.contains("__VERIFIER_atomic_end")){
+    insertVerifierAtomic(I, context, Module);
   }
+//svcomp -----------------------------------------------------
+  //skip the insterted function calls
+  ++I;
 }
 
 static void instrumentFunction(Function &F, GlobalVariable *LocFile,

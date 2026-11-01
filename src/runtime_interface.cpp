@@ -41,6 +41,30 @@ extern "C"
                               loc_line, is_local, ins);
     }
 
+
+    //currently there is nothing using these "atomic" callbacks so they are left empty.
+    // I am also not sure what the semantics of the UPDATE access was in AnaConDa, so for now these are just to not falsely flag atomic operations.
+    void lachesis_before_atomic_read(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
+                             char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins){
+    }
+
+    void lachesis_before_atomic_write(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
+                             char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins){
+
+    }
+
+
+    void lachesis_after_atomic_read(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
+                             char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins){
+
+    }
+
+    void lachesis_after_atomic_write(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
+                             char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins){
+
+    }
+
+
     void lachesis_step_out_of_function()
     {
         stacktrace_remove_stackframe();

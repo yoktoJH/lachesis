@@ -14,15 +14,6 @@ extern "C"{
     void  __VERIFIER_atomic_end(){
         global_lock.unlock();
     }
-
-
-    void __VERIFIER_atomic_acquire_lachesis(){
-        global_lock.lock();
-    }
-    
-    void  __VERIFIER_atomic_release_lachesis(){
-        global_lock.unlock();
-    }
     
     unsigned long __VERIFIER_nondet_ulong(){
         int type = random_number(0,3);
