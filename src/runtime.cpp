@@ -37,10 +37,10 @@ void register_after_memory_callback(std::unique_ptr<memory_callback> callback, c
 
 void call_memory_callbacks(memory_operation_t op, HookPosition position, ADDRINT addr, UINT32 size,
                            const char *var_name,
-                           const char *var_type, UINT32 var_offset, const char *loc_file, INT32 loc_line, BOOL is_local,
+                           const char *var_type, UINT32 var_offset, const char *loc_file, INT32 loc_line,INT32 loc_column, BOOL is_local,
                            ADDRINT ins) {
     const VARIABLE variable = {var_name, var_type, var_offset};
-    const LOCATION location = {loc_file, loc_line};
+    const LOCATION location = {loc_file, loc_line,loc_column};
 
     const THREADID TID = tid_to_THREADID(get_this_thread_id());
 

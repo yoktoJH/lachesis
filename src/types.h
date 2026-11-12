@@ -277,6 +277,7 @@ struct stack_frame {
   char *function_name;
   char *file_name;
   int32_t line = -1;
+  int32_t column = -1;
 };
 
 // Definitions of thread-related special data types

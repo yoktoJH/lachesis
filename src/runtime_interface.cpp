@@ -8,59 +8,59 @@
 extern "C"
 {
     void lachesis_before_read(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
-                              char *loc_file, int32_t loc_line, bool is_local, ADDRINT ins)
+                              char *loc_file, int32_t loc_line, int32_t loc_column, bool is_local, ADDRINT ins)
     {
         call_memory_callbacks(memory_operation_t::READ, HookPosition::Before, addr, size, var_name, var_type, var_offset,
                               loc_file,
-                              loc_line, is_local, ins);
+                              loc_line, loc_column, is_local, ins);
         insert_noise<memory_operation_t::READ>(var_name, loc_line);
     }
 
     void lachesis_before_write(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
-                               char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins)
+                               char *loc_file, int32_t loc_line, int32_t loc_column, BOOL is_local, ADDRINT ins)
     {
         call_memory_callbacks(memory_operation_t::WRITE, HookPosition::Before, addr, size, var_name, var_type,
                               var_offset, loc_file,
-                              loc_line, is_local, ins);
+                              loc_line, loc_column, is_local, ins);
         insert_noise<memory_operation_t::WRITE>(var_name, loc_line);
     }
 
     void lachesis_after_read(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
-                             char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins)
+                             char *loc_file, int32_t loc_line, int32_t loc_column, BOOL is_local, ADDRINT ins)
     {
         call_memory_callbacks(memory_operation_t::READ, HookPosition::After, addr, size, var_name, var_type, var_offset,
                               loc_file,
-                              loc_line, is_local, ins);
+                              loc_line, loc_column, is_local, ins);
     }
 
     void lachesis_after_write(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
-                              char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins)
+                              char *loc_file, int32_t loc_line, int32_t loc_column, BOOL is_local, ADDRINT ins)
     {
         call_memory_callbacks(memory_operation_t::WRITE, HookPosition::After, addr, size, var_name, var_type, var_offset,
                               loc_file,
-                              loc_line, is_local, ins);
+                              loc_line, loc_column, is_local, ins);
     }
 
 
     //currently there is nothing using these "atomic" callbacks so they are left empty.
     // I am also not sure what the semantics of the UPDATE access was in AnaConDa, so for now these are just to not falsely flag atomic operations.
     void lachesis_before_atomic_read(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
-                             char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins){
+                             char *loc_file, int32_t loc_line, int32_t loc_column, BOOL is_local, ADDRINT ins){
     }
 
     void lachesis_before_atomic_write(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
-                             char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins){
+                             char *loc_file, int32_t loc_line, int32_t loc_column, BOOL is_local, ADDRINT ins){
 
     }
 
 
     void lachesis_after_atomic_read(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
-                             char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins){
+                             char *loc_file, int32_t loc_line, int32_t loc_column, BOOL is_local, ADDRINT ins){
 
     }
 
     void lachesis_after_atomic_write(ADDRINT addr, uint32_t size, char *var_name, char *var_type, uint32_t var_offset,
-                             char *loc_file, int32_t loc_line, BOOL is_local, ADDRINT ins){
+                             char *loc_file, int32_t loc_line, int32_t loc_column, BOOL is_local, ADDRINT ins){
 
     }
 
@@ -77,21 +77,21 @@ extern "C"
 
     // TODO make this function not pthread specific
     int lachesis_thread_create(pthread_t *thread, const pthread_attr_t *attr,  void *(*start_routine)(void *),
-                               void *arg, char *loc_file, int32_t loc_line)
+                               void *arg, char *loc_file, int32_t loc_line, int32_t loc_column)
     {
-        return start_new_thread(thread, attr, start_routine, arg, loc_file, loc_line); // add real values here;
+        return start_new_thread(thread, attr, start_routine, arg, loc_file, loc_line, loc_column); // add real values here;
         /*if (retval == 0) {
             const std::thread::id ntid(*thread);
             const THREADID newTID = tid_to_THREADID(ntid);
-            add_thread_info(newTID, loc_file, loc_line);
+            add_thread_info(newTID, loc_file, loc_line, int32_t loc_column);
 
             call_thread_forked_callbacks(newTID);
         }*/
     }
 
-    void lachesis_before_call(char *loc_file, int32_t loc_line)
+    void lachesis_before_call(char *loc_file, int32_t loc_line, int32_t loc_column)
     {
-        stacktrace_add_location_info(loc_file, loc_line);
+        stacktrace_add_location_info(loc_file, loc_line, loc_column);
     }
 
     void lachesis_after_call()

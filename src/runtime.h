@@ -7,7 +7,7 @@
 void register_memory_callback(std::unique_ptr<memory_callback> callback, memory_operation_t op, HookPosition position);
 
 void call_memory_callbacks(memory_operation_t op, HookPosition position, ADDRINT addr, UINT32 size, const char *var_name,
-                           const char *var_type, UINT32 var_offset, const char *loc_file, INT32 loc_line, BOOL is_local,
+                           const char *var_type, UINT32 var_offset, const char *loc_file, INT32 loc_line,INT32 loc_column, BOOL is_local,
                            ADDRINT ins);
 void register_thread_create_callback(THREADFUNPTR callback);
 

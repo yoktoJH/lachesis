@@ -214,7 +214,7 @@ VOID REPORT_DataRace(ACCESSREPORT access1, ACCESSREPORT access2){
         .variable_data=access1,
         .func_name=t1.stacktrace.back().function_name,
         .thread_data={
-            .create_location= {t1.file_name,t1.line},
+            .create_location= {t1.file_name,t1.line,t1.column},
             .func_name=t1.func_name
         }
 
@@ -224,7 +224,7 @@ VOID REPORT_DataRace(ACCESSREPORT access1, ACCESSREPORT access2){
         .variable_data=access2,
         .func_name=t2.stacktrace.back().function_name,
         .thread_data={
-            .create_location= {t2.file_name,t2.line},
+            .create_location= {t2.file_name,t2.line,t2.column},
             .func_name=t2.func_name
         }
 

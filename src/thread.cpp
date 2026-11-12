@@ -55,7 +55,7 @@ tid_t THREADID_to_tid(THREADID id)
 static std::mutex thread_info_mutex;
 static std::map<THREADID, thread_info> thread_map;
 
-void add_thread_info(const THREADID newTID, char *file, int32_t line)
+void add_thread_info(const THREADID newTID, char *file, int32_t line, int32_t column)
 {
     const THREADID TID = tid_to_THREADID(get_this_thread_id());
 
@@ -66,6 +66,7 @@ void add_thread_info(const THREADID newTID, char *file, int32_t line)
 
     info.file_name = file;
     info.line = line;
+    info.column = column;
     info.parent_thread = TID;
     info.func_name = parent_info.stacktrace.back().function_name;
 
@@ -102,7 +103,7 @@ void stacktrace_remove_stackframe()
     }
 }
 
-void stacktrace_add_location_info(char *file, int32_t line)
+void stacktrace_add_location_info(char *file, int32_t line, int32_t column)
 {
     std::lock_guard lock(thread_info_mutex);
     const THREADID TID = tid_to_THREADID(get_this_thread_id());
@@ -110,6 +111,7 @@ void stacktrace_add_location_info(char *file, int32_t line)
 
     info.stacktrace.back().file_name = file;
     info.stacktrace.back().line = line;
+    info.stacktrace.back().column = column;
 }
 
 void stacktrace_remove_location_info()
@@ -120,6 +122,7 @@ void stacktrace_remove_location_info()
 
     info.stacktrace.back().file_name = empty_string;
     info.stacktrace.back().line = -1;
+    info.stacktrace.back().column = -1;
 }
 
 Backtrace get_stacktrace_copy(const THREADID TID)
@@ -157,7 +160,7 @@ void *new_thread_prelude(void *arg)
 }
 
 int start_new_thread(tid_t *thread, const pthread_attr_t *attr,
-                     void *(*start_routine)(void *), void *arg, char *file_name, int32_t line)
+                     void *(*start_routine)(void *), void *arg, char *file_name, int32_t line,int32_t column)
 {
     new_thread_data *data = new new_thread_data;
     data->start_routine = start_routine;
@@ -166,7 +169,7 @@ int start_new_thread(tid_t *thread, const pthread_attr_t *attr,
     if (retval == 0)
     {
         const THREADID newTID = tid_to_THREADID(*thread);
-        add_thread_info(newTID, file_name, line);
+        add_thread_info(newTID, file_name, line,column);
         call_thread_create_callbacks(newTID);
         call_thread_forked_callbacks(newTID);
         data->latch.count_down();

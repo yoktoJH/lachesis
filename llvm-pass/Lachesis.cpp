@@ -129,6 +129,14 @@ static int getFileLine(Instruction &Inst) {
   return Dbgloc.getLine();
 }
 
+static int getFileColumn(Instruction &Inst) {
+  DebugLoc Dbgloc = Inst.getDebugLoc();
+  if (Dbgloc.get() == nullptr) {
+    return 0;
+  }
+  return Dbgloc.getCol();
+}
+
 static void getRuntimeFunctions(FunctionCallee &BeforeFunc,
                                 FunctionCallee &AfterFunc, Instruction &Inst,
                                 Module *Module, FunctionType *RuntimeMemType) {
@@ -168,7 +176,7 @@ static void instrumentLoadStore(inst_iterator I, LLVMContext &context,
   // 8 is_local, ADDRINT 9 ins)
 
   const static SmallVector<Type *, 9> RuntimeMemParameters = {
-      PVOID, UINT32, PCHAR, PCHAR, UINT32, PCHAR, INT32, BOOL, UINT64};
+      PVOID, UINT32, PCHAR, PCHAR, UINT32, PCHAR, INT32, INT32, BOOL, UINT64};
 
   auto *RuntimeMemType =
       FunctionType::get(Type::getVoidTy(context), RuntimeMemParameters, false);
@@ -194,6 +202,7 @@ static void instrumentLoadStore(inst_iterator I, LLVMContext &context,
   GlobalVariable *VarType;
   bool IsLocal = false;
   int LineNum = getFileLine(Inst);
+  int ColNum = getFileColumn(Inst);
 
   if (LocalVariables.find(PointerOp) != LocalVariables.end()) {
     // it is a local variable
@@ -226,6 +235,7 @@ static void instrumentLoadStore(inst_iterator I, LLVMContext &context,
     Builder.CreateCall(Fun,
                        {PointerOp, Builder.getInt32(Size), VarName, VarType,
                         Builder.getInt32(0), LocFile, Builder.getInt32(LineNum),
+                        Builder.getInt32(ColNum),
                         IsLocal ? Builder.getTrue() : Builder.getFalse(),
                         Builder.getInt64(0)});
   };
@@ -312,7 +322,7 @@ static void insertThreadCreate(inst_iterator I, LLVMContext &context,
                         {OriginalType->getFunctionParamType(0),
                          OriginalType->getFunctionParamType(1),
                          OriginalType->getFunctionParamType(2),
-                         OriginalType->getFunctionParamType(3), PCHAR, INT32},
+                         OriginalType->getFunctionParamType(3), PCHAR, INT32, INT32},
                         false);
 
   FunctionCallee Func =
@@ -322,7 +332,7 @@ static void insertThreadCreate(inst_iterator I, LLVMContext &context,
   CallInst *lachesisThreadCreate =
       Builder.CreateCall(Func, {Inst->getOperand(0), Inst->getOperand(1),
                                 Inst->getOperand(2), Inst->getOperand(3),
-                                LocFile, Builder.getInt32(getFileLine(*Inst))});
+                                LocFile, Builder.getInt32(getFileLine(*Inst)), Builder.getInt32(getFileColumn(*Inst))});
   Inst->replaceAllUsesWith(lachesisThreadCreate);
   deadInst.insert(Inst);
 }
@@ -456,7 +466,7 @@ static void instrumentFunctionCall(inst_iterator &I, LLVMContext &context,
   auto &Inst = cast<CallInst>(*I);
 
   static FunctionType *BeforeCallType =
-      FunctionType::get(Type::getVoidTy(context), {PCHAR, INT32}, false);
+      FunctionType::get(Type::getVoidTy(context), {PCHAR, INT32, INT32}, false);
   static FunctionType *AfterCallType =
       FunctionType::get(Type::getVoidTy(context), {}, false);
 
@@ -467,7 +477,7 @@ static void instrumentFunctionCall(inst_iterator &I, LLVMContext &context,
 
   auto Builder = IRBuilder<>(&*I);
   Builder.CreateCall(BeforeFunction,
-                     {LocFile, Builder.getInt32(getFileLine(Inst))});
+                     {LocFile, Builder.getInt32(getFileLine(Inst)),Builder.getInt32(getFileColumn(Inst))});
   IRBuilder<>(&*II).CreateCall(AfterFunction, {});
   
   auto FuncName = Inst.getCalledFunction()->getName();

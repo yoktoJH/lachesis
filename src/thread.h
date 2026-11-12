@@ -10,6 +10,7 @@ struct thread_info
     char *file_name = empty_string;
     char *func_name = empty_string;
     int32_t line = -1;
+    int32_t column = -1;
     std::optional<THREADID> parent_thread;
 };
 
@@ -17,10 +18,8 @@ struct thread_info
 void stacktrace_add_stackframe(char * function_name);
 void stacktrace_remove_stackframe();
 
-void stacktrace_add_location_info(char * file, int32_t line);
+void stacktrace_add_location_info(char * file, int32_t line,int32_t column);
 void stacktrace_remove_location_info();
-
-void add_thread_info(THREADID newTID, char * file,int32_t line);
 
 Backtrace get_stacktrace_copy(THREADID TID);
 
@@ -32,7 +31,7 @@ thread_info svcomp_get_thread_info(const THREADID TID);
 
 tid_t THREADID_to_tid(THREADID id);
 int start_new_thread(pthread_t *thread, const pthread_attr_t *attr,
-                     void *(*start_routine)(void *), void *arg, char *file_name, int32_t line);
+                     void *(*start_routine)(void *), void *arg, char *file_name, int32_t line, int32_t column);
 
 const tid_t get_this_thread_id();
 
