@@ -465,6 +465,13 @@ static void instrumentFunctionCall(inst_iterator &I, LLVMContext &context,
   ++II;
   auto &Inst = cast<CallInst>(*I);
 
+  // Hotfix for call via function pointers.
+  //
+  // TODO: this could be problematic when functions such as pthread_mutex_lock
+  // are passed via pointers which is, however, very unlikely.
+  if (!Inst.getCalledFunction())
+	return;
+
   static FunctionType *BeforeCallType =
       FunctionType::get(Type::getVoidTy(context), {PCHAR, INT32, INT32}, false);
   static FunctionType *AfterCallType =
