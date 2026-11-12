@@ -75,17 +75,11 @@ void add_thread_info(const THREADID newTID, char *file, int32_t line, int32_t co
 void stacktrace_add_stackframe(char *function_name)
 {
     const THREADID TID = tid_to_THREADID(get_this_thread_id());
-    {
-        std::unique_lock lock(thread_info_mutex);
-        thread_info &info = thread_map[TID];
-        stack_frame &stackframe = info.stacktrace.emplace_back();
-        stackframe.function_name = function_name;
-        stackframe.file_name = empty_string;
-    }
-    if (TID == 0)//signal main thread creation
-    {
-        call_thread_create_callbacks(TID);
-    }
+    std::unique_lock lock(thread_info_mutex);
+    thread_info &info = thread_map[TID];
+    stack_frame &stackframe = info.stacktrace.emplace_back();
+    stackframe.function_name = function_name;
+    stackframe.file_name = empty_string;
 }
 
 void stacktrace_remove_stackframe()

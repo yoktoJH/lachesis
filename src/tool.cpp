@@ -217,9 +217,8 @@ VOID REPORT_DataRace(ACCESSREPORT access1, ACCESSREPORT access2){
             .create_location= {t1.file_name,t1.line,t1.column},
             .func_name=t1.func_name
         }
-
     };
-    auto t2 = svcomp_get_thread_info(access1.thread);
+    auto t2 = svcomp_get_thread_info(access2.thread);
     AccessData a2{
         .variable_data=access2,
         .func_name=t2.stacktrace.back().function_name,
@@ -227,10 +226,7 @@ VOID REPORT_DataRace(ACCESSREPORT access1, ACCESSREPORT access2){
             .create_location= {t2.file_name,t2.line,t2.column},
             .func_name=t2.func_name
         }
-
     };
 
-    a1.variable_data.thread=1;
-    a2.variable_data.thread=2;
     create_witness(a1,a2);
 }

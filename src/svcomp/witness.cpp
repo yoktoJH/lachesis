@@ -67,21 +67,31 @@ void set_data_race_segment(ryml::NodeRef segment,AccessData& access1, AccessData
 
 void set_content(ryml::NodeRef content,AccessData& access1, AccessData& access2){
     content.set_seq();
+    int tid=1;
+    if (access1.variable_data.thread != 0)
+    {
+        ryml::NodeRef t1_item = content.append_child();
+        t1_item.set_map();
+        set_thread_creation_segment(t1_item["segment"],access1);
+        access1.variable_data.thread = tid++;
+    }
+    
 
-    ryml::NodeRef t1_item = content.append_child();
-    t1_item.set_map();
-    set_thread_creation_segment(t1_item["segment"],access1);
+    if (access2.variable_data.thread != 0)
+    {
+        ryml::NodeRef t2_item = content.append_child();
+        t2_item.set_map();
+        set_thread_creation_segment(t2_item["segment"],access2);
+        access2.variable_data.thread = tid;
+    }
 
-    ryml::NodeRef t2_item = content.append_child();
-    t2_item.set_map();
-    set_thread_creation_segment(t2_item["segment"],access2);
     
     ryml::NodeRef race_item = content.append_child();
     race_item.set_map();
     set_data_race_segment(race_item["segment"],access1,access2);
 }
 
-void set_metadata(ryml::NodeRef metadata){
+void set_metadata(ryml::NodeRef metadata,std::string file_name){
     metadata.set_map();
     metadata["format_version"].set_val("2.2");
     metadata["format_version"].set_val_style(ryml::VAL_DQUO);
@@ -102,10 +112,11 @@ void set_metadata(ryml::NodeRef metadata){
     ryml::NodeRef input_files = task["input_files"];
     input_files.set_seq();
     auto tmp= input_files.append_child();
-    tmp.set_val("test_test.c");
+    tmp.set_serialized(file_name);
     tmp.set_val_style(ryml::VAL_DQUO);
-    task["input_file_hashes"].set_val("./test_test.c : f4f657126c15d43da20c40fb3af1c7a4864ce85120244d63e5fd18572b66f4ca");
-    task["input_file_hashes"].set_val_style(ryml::VAL_DQUO);
+    ryml::NodeRef hashes =  task["input_file_hashes"];
+    hashes.set_map();
+    hashes["__FILE__"].set_val("__HASH__");
     task["specification"].set_val("G ! data-race");
     task["specification"].set_val_style(ryml::VAL_DQUO);
     task["data_model"].set_val("ILP32");
@@ -118,12 +129,11 @@ void set_metadata(ryml::NodeRef metadata){
 static std::mutex witness_mutex;
 void create_witness(AccessData access1,AccessData access2){
     std::lock_guard lock(witness_mutex);
-    const std::filesystem::path witness_path{"witness.yml"};
-    if (std::filesystem::exists(witness_path))
+    static bool witness_generated = false;    
+    if (witness_generated)
     {
         return;
     }
-    
 
     ryml::Tree witness;
     ryml::NodeRef root = witness.rootref();
@@ -132,17 +142,12 @@ void create_witness(AccessData access1,AccessData access2){
 
     entry.set_map();
     entry["entry_type"].set_val("violation_sequence");
-    set_metadata(entry["metadata"]);
+    set_metadata(entry["metadata"], access1.variable_data.location.file);
 
     set_content(entry["content"],access1,access2);
 
-    /*FILE* witness_file = std::fopen("witness.yml","w");
-    if (witness_file == nullptr){
-        std::cerr <<"Failed to open the witness output file\n";
-        return;
-    }
-    ryml::emit_yaml(witness,witness.root_id(), witness_file);*/
-    std::string s;
+    const std::filesystem::path witness_path{"witness.yml"};
     std::ofstream witness_file(witness_path);
-    witness_file << witness; // works with any stream having .operator<<() and .write()
+    witness_file << witness; 
+    witness_generated=true;
 }
