@@ -84,9 +84,6 @@ VOID SYNC_AfterLockRelease(LOCKFUNPTR callback);
 API_FUNCTION VOID SYNC_AfterWait(CONDFUNPTR callback);*/
 VOID SYNC_AfterJoin(JOINFUNPTR callback);
 
-// Definitions of thread-related special data types
-typedef std::vector<stack_frame> Backtrace;
-typedef std::vector< std::string > Symbols;
 
 
 // Definitions of thread-related callback functions
@@ -155,4 +152,6 @@ API_FUNCTION VOID TM_AfterTxWrite(AFTERTXWRITEFUNPTR callback);
 #define CONSOLE_NOPREFIX(message) std::cout << message
 #define CONSOLE_PREFIX(message) std::cout <<"[lachesis] " << message
 
+/*Datarace report back to lachesis*/
+VOID REPORT_DataRace(ACCESSREPORT access1, ACCESSREPORT access2);
 #endif //__LLVMTOOL_LACHESIS_TOOLAPI__

@@ -2,6 +2,7 @@
 #include "runtime.h"
 #include "thread.h"
 #include "callback.h"
+#include "svcomp/witness.h"
 //---------------------------------------------------------------------------------------------------------------------
 //Before callbacks
 VOID ACCESS_BeforeMemoryRead(MEMREADAVFUNPTR callback) {
@@ -205,4 +206,31 @@ VOID SYNC_AfterJoin(JOINFUNPTR callback) {
 
 VOID SYNC_BeforeJoin(JOINFUNPTR callback) {
     register_join_callback(callback, HookPosition::Before);
+}
+
+VOID REPORT_DataRace(ACCESSREPORT access1, ACCESSREPORT access2){
+    thread_info t1 = svcomp_get_thread_info(access1.thread);
+    AccessData a1{
+        .variable_data=access1,
+        .func_name=t1.stacktrace.back().function_name,
+        .thread_data={
+            .create_location= {t1.file_name,t1.line},
+            .func_name=t1.func_name
+        }
+
+    };
+    auto t2 = svcomp_get_thread_info(access1.thread);
+    AccessData a2{
+        .variable_data=access2,
+        .func_name=t2.stacktrace.back().function_name,
+        .thread_data={
+            .create_location= {t2.file_name,t2.line},
+            .func_name=t2.func_name
+        }
+
+    };
+
+    a1.variable_data.thread=1;
+    a2.variable_data.thread=2;
+    create_witness(a1,a2);
 }

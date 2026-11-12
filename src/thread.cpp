@@ -51,16 +51,6 @@ tid_t THREADID_to_tid(THREADID id)
     exit(1);
 }
 
-static char no_file[] = {' '};
-
-struct thread_info
-{
-    std::vector<stack_frame> stacktrace;
-    // file and line where thread was created
-    char *file_name = no_file;
-    int32_t line = -1;
-    std::optional<THREADID> parent_thread;
-};
 
 static std::mutex thread_info_mutex;
 static std::map<THREADID, thread_info> thread_map;
@@ -69,14 +59,15 @@ void add_thread_info(const THREADID newTID, char *file, int32_t line)
 {
     const THREADID TID = tid_to_THREADID(get_this_thread_id());
 
-    {
-        std::lock_guard lock(thread_info_mutex);
-        thread_info &info = thread_map[newTID];
+    std::lock_guard lock(thread_info_mutex);
+    thread_info &info = thread_map[newTID];
+    thread_info &parent_info = thread_map[TID];
 
-        info.file_name = file;
-        info.line = line;
-        info.parent_thread = TID;
-    }
+
+    info.file_name = file;
+    info.line = line;
+    info.parent_thread = TID;
+    info.func_name = parent_info.stacktrace.back().function_name;
 
 }
 
@@ -88,9 +79,9 @@ void stacktrace_add_stackframe(char *function_name)
         thread_info &info = thread_map[TID];
         stack_frame &stackframe = info.stacktrace.emplace_back();
         stackframe.function_name = function_name;
-        stackframe.file_name = no_file;
+        stackframe.file_name = empty_string;
     }
-    if (TID == 0)
+    if (TID == 0)//signal main thread creation
     {
         call_thread_create_callbacks(TID);
     }
@@ -127,7 +118,7 @@ void stacktrace_remove_location_info()
     const THREADID TID = tid_to_THREADID(get_this_thread_id());
     thread_info &info = thread_map.at(TID);
 
-    info.stacktrace.back().file_name = no_file;
+    info.stacktrace.back().file_name = empty_string;
     info.stacktrace.back().line = -1;
 }
 
@@ -142,6 +133,11 @@ std::string get_thread_create_location(const THREADID TID)
     std::lock_guard lock(thread_info_mutex);
     const thread_info &info = thread_map.at(TID);
     return std::string(info.file_name) + ":" + std::to_string(info.line);
+}
+
+thread_info svcomp_get_thread_info(const THREADID TID){
+    std::lock_guard lock(thread_info_mutex);
+    return thread_map.at(TID);
 }
 
 struct new_thread_data

@@ -69,14 +69,14 @@ void load_noise_config(ryml::NodeRef node, std::map<memory_operation_t, noise_co
     {
         ryml::NodeRef n = node[noise_op_string[i]];
         std::string type_string;
-        n["type"] >> type_string;
+        n["type"].load(&type_string);
         noise_type type = to_noise_type(type_string);
 
         int frequency, strength;
         bool random;
-        n["frequency"] >> frequency;
-        n["strength"] >> strength;
-        n["random"] >> random;
+        n["frequency"].load(&frequency);
+        n["strength"].load(&strength);
+        n["random"].load(&random);
         noise_config_t noise = {type, frequency, strength, random};
         noise_config[noise_op_enum[i]] = std::move(noise);
     }
@@ -99,25 +99,25 @@ memory_operation_t to_memory_op(std::string_view op)
 void load_filter(ryml::NodeRef node, std::map<memory_operation_t, std::vector<memop_filter>> &filters)
 {
     std::string name;
-    node["base"]["name"] >> name;
+    node["base"]["name"].load(&name);
     std::string op;
     {
         auto n = node["access1"];
 
-        n["kind"] >> op;
+        n["kind"].load(&op);
         memop_filter filter{};
         filter.variable_name = name;
-        n["location"]["file"] >> filter.file;
-        n["location"]["line"] >> filter.line;
+        n["location"]["file"].load(&filter.file);
+        n["location"]["line"].load(&filter.line);
         filters[to_memory_op(op)].emplace_back(std::move(filter));
     }
 
     auto n = node["access2"];
-    n["kind"] >> op;
+    n["kind"].load(&op);
     memop_filter filter{};
     filter.variable_name = name;
-    n["location"]["file"] >> filter.file;
-    n["location"]["line"] >> filter.line;
+    n["location"]["file"].load(&filter.file);
+    n["location"]["line"].load(&filter.line);
     filters[to_memory_op(op)].emplace_back(std::move(filter));
 }
 
@@ -133,6 +133,8 @@ void run_analysis_init(){
     else if (global_config.analysis == "fasttrack")
     {
         fasttrack_init();
+    }else{
+        std::cerr << "No analysis selected" << std::endl;
     }
 }
 
@@ -148,9 +150,9 @@ void load_config()
 
     ryml::Tree config = ryml::parse_in_place(ryml::to_substr(config_string));
     std::string static_analysis_file;
-    config["static_analysis_file"] >> static_analysis_file;
-    config["analysis"] >> global_config.analysis;
-    //TODOrun the init function of the analysi
+    config["static_analysis_file"].load(&static_analysis_file);
+    config["analysis"].load(&(global_config.analysis));
+    run_analysis_init();
     
     load_noise_config(config["noise"]["default"], global_config.default_noise);
     load_noise_config(config["noise"]["static_detections"], global_config.static_analysis_noise);
@@ -159,8 +161,9 @@ void load_config()
     {
         global_config.config_strings.emplace_back(read_file(static_analysis_file.c_str()));
         std::string &static_results_string = global_config.config_strings.back();
-        if (static_results_string.length() == 0)
+        if (static_results_string.length() == 0)// no static analysis
         {
+            global_config.default_noise = global_config.static_analysis_noise;
             return;
         }
 

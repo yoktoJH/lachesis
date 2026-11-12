@@ -30,6 +30,7 @@
  */
 
 #include "tool.h"
+#include "lachesis_types.h"
 
 #include <map>
 
@@ -181,6 +182,11 @@ VOID beforeMemoryAccess(Operation op, THREADID tid, ADDRINT addr,
       THREAD_GetThreadCreationLocation(tid, tcloc);
 
       CONSOLE_NOPREFIX("\n    Thread created at " + tcloc + "\n\n");
+
+      // SV-COMP reporting       
+      ACCESSREPORT a1 ={ it->second.op==WRITE?memory_operation_t::WRITE:memory_operation_t::READ, it->second.thread,it->second.variable,it->second.location};
+      ACCESSREPORT a2 ={ op==WRITE?memory_operation_t::WRITE:memory_operation_t::READ, tid,variable,location};
+      REPORT_DataRace(a1,a2);
     }
   }
   else

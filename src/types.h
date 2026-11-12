@@ -41,8 +41,9 @@
 #include <sstream>
 #include <thread>
 #include <format>
+#include <vector>
 //#include "pin.H"
-
+#include "lachesis_types.h"
 /// this is from pin
 
 #if !defined(VOID)
@@ -138,11 +139,12 @@ typedef struct Location_s
 {
   std::string file; //!< A name of a file.
   INT32 line; //!< A line number.
+  INT32 column;
 
   /**
    * Constructs an object representing a source code location.
    */
-  Location_s() : file(), line(-1) {}
+  Location_s() : file(), line(-1), column(-1) {}
 
   /**
    * Constructs an object representing a source code location.
@@ -151,7 +153,17 @@ typedef struct Location_s
    * @param l A line number in the file in which is the source code location
    *   situated.
    */
-  Location_s(const std::string& f, INT32 l) : file(f), line(l) {}
+  Location_s(const std::string& f, INT32 l) : file(f), line(l),column(-1) {}
+  /**
+   * Constructs an object representing a source code location.
+   *
+   * @param f A name of the file in which is the source code location situated.
+   * @param l A line number in the file in which is the source code location
+   *   situated.
+   * @param c A column number in the file in which is the source code location
+   *   situated.
+   */
+  Location_s(const std::string& f, INT32 l, INT32 c) : file(f), line(l),column(c) {}
 } LOCATION;
 
 /**
@@ -266,6 +278,20 @@ struct stack_frame {
   char *file_name;
   int32_t line = -1;
 };
+
+// Definitions of thread-related special data types
+typedef std::vector<stack_frame> Backtrace;
+typedef std::vector<std::string> Symbols;
+
+typedef struct AccessReport_s
+{
+  memory_operation_t op; //!< A type of the access.
+  THREADID thread; //!< A thread which is performing the access.
+  VARIABLE variable; //!< A variable which is accessed.
+  LOCATION location; 
+
+  AccessReport_s(memory_operation_t o, THREADID t, VARIABLE v, LOCATION l): op(o),thread(t),variable(v),location(l){}
+} ACCESSREPORT;
 
 
 std::string decstr(bool) = delete;

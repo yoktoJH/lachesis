@@ -31,7 +31,6 @@ set(SOURCE
         callback.h
         noise.h
         runtime_interface.cpp
-        sv-comp_impl.cpp
         runtime.cpp
         runtime.h
         tool.cpp
@@ -42,6 +41,10 @@ set(SOURCE
         analysers/eraser.cpp
         analysers/atomrace.cpp
         analysers/fasttrack2.cpp
+        svcomp/sv-comp_impl.cpp
+        svcomp/uuid/uuid.h
+        svcomp/witness.cpp
+        svcomp/witness.h
         config.h
         config.cpp
         utils.h

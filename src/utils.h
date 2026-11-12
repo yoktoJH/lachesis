@@ -15,7 +15,7 @@ random_number(T min, T max)
   static std::ranlux24_base gen(rd());
 
   static std::mutex random_lock;
-  std::uniform_int_distribution<> distrib(min, max);
+  std::uniform_int_distribution<T> distrib(min, max);
 
   const std::lock_guard guard(random_lock);
 
