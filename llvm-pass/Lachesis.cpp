@@ -72,11 +72,11 @@ using global_variable_map = std::map<Value *, GlobalVariableMetadata>;
 
 #define UINT32 Type::getInt32Ty(context)
 #define INT32 Type::getInt32Ty(context)
-#define PCHAR PointerType::getUnqual(Type::getInt8Ty(context))
+#define PCHAR PointerType::getUnqual(context)
 #define UINT64 Type::getInt64Ty(context)
 #define INT64 Type::getInt64Ty(context)
 #define BOOL Type::getInt1Ty(context)
-#define PVOID PointerType::getUnqual(Type::getInt8Ty(context))
+#define PVOID PointerType::getUnqual(context)
 
 static Value *getValueFromInst(Instruction &Inst) {
   Value *PointerOp = nullptr;
@@ -225,7 +225,7 @@ static void instrumentLoadStore(inst_iterator I, LLVMContext &context,
     LocalVariables.emplace(PointerOp, VariableMetadata{VarName, VarType});
   }
 
-  auto Size = Module->getDataLayout().getTypeAllocSize(PointerOp->getType());
+  auto Size = Module->getDataLayout().getTypeAllocSize(getLoadStoreType(&Inst));
 
   // read(ADDRINT=uint64_t 1 addr, uint32_t 2 size, char* 3 var_name, char* 4
   // var_type, uint32_t 5 var_offset, char* 6 loc_file,int32_t 7 loc_line,
@@ -260,7 +260,7 @@ static void insertBacktraceStepInCall(Function &F, LLVMContext &context,
 
   auto *RuntimeType = FunctionType::get(
       Type::getVoidTy(context),
-      {PointerType::getUnqual(Type::getInt8Ty(context))}, false);
+      {PointerType::getUnqual(context)}, false);
 
   auto RuntimeFunc =
       Module->getOrInsertFunction("lachesis_step_into_function", RuntimeType);
@@ -337,7 +337,7 @@ static void insertThreadCreate(inst_iterator I, LLVMContext &context,
   deadInst.insert(Inst);
 }
 //svcomp ----------------------------------------------------
-static void insertVerifierAtomic(inst_iterator &I, LLVMContext &context,
+static void insertVerifierAtomic(inst_iterator I, LLVMContext &context,
                               Module *Module) {
 
   static FunctionType *FnType =
@@ -377,7 +377,7 @@ static void insertVerifierAssert(inst_iterator I, LLVMContext &context,
 }
 //svcomp ----------------------------------------------------
 
-static void instrumentLocking(inst_iterator &I, LLVMContext &context,
+static void instrumentLocking(inst_iterator I, LLVMContext &context,
                               Module *Module, bool isWriteLock) {
 
   static FunctionType *FnType =
@@ -402,7 +402,7 @@ static void instrumentLocking(inst_iterator &I, LLVMContext &context,
                                                     : AfterBuilder.getFalse()});
 }
 
-static void instrumentUnlocking(inst_iterator &I, LLVMContext &context,
+static void instrumentUnlocking(inst_iterator I, LLVMContext &context,
                                 Module *Module) {
   static FunctionType *FnType =
       FunctionType::get(Type::getVoidTy(context), {PVOID}, false);
@@ -454,7 +454,7 @@ static void instrumentFunctionCall(inst_iterator &I, LLVMContext &context,
   static const char ThreadCreateFuncName[] = "pthread_create";
   static const char LockMutexFuncName[] = "pthread_mutex_lock";
   static const char RdLockRWLockFuncName[] = "pthread_rwlock_rdlock";
-  static const char WrLockRWLockFuncName[] = "pthread_rwlock_rdlock";
+  static const char WrLockRWLockFuncName[] = "pthread_rwlock_wrlock";
   static const char UnlockMutexFuncName[] = "pthread_mutex_unlock";
   static const char UnlockRWLockFuncName[] = "pthread_rwlock_unlock";
   static const char JoinThreadFuncName[] = "pthread_join";
@@ -483,41 +483,34 @@ static void instrumentFunctionCall(inst_iterator &I, LLVMContext &context,
   auto FuncName = Inst.getCalledFunction()->getName();
   if (FuncName.compare(ThreadCreateFuncName) == 0) {
     insertThreadCreate(I, context, Module, LocFile);
-
   } else if (FuncName.compare(LockMutexFuncName) ==
                  0 ||
              Inst.getCalledFunction()->getName().compare(
                  WrLockRWLockFuncName) == 0) {
 
     instrumentLocking(I, context, Module, true);
-
   } else if (FuncName.compare(
                  RdLockRWLockFuncName) == 0) {
-
     instrumentLocking(I, context, Module, false);
-
   } else if (FuncName.compare(UnlockMutexFuncName) ==
                  0 ||
              Inst.getCalledFunction()->getName().compare(
                  UnlockRWLockFuncName) == 0) {
-
     instrumentUnlocking(I, context, Module);
-
   } else if (FuncName.compare(JoinThreadFuncName) ==
              0) {
     instrumentJoin(I, context, Module);
 //svcomp ----------------------------------------------------
   } else if (FuncName.contains(
                  "__VERIFIER_assert")) {
-    insertVerifierAssert(I, context, Module);
+    // probably should not be instrumented for the competition
+    //insertVerifierAssert(I, context, Module);
   }else if (FuncName.contains("__VERIFIER_atomic") 
             && !FuncName.contains("__VERIFIER_atomic_begin") 
             && !FuncName.contains("__VERIFIER_atomic_end")){
     insertVerifierAtomic(I, context, Module);
   }
 //svcomp -----------------------------------------------------
-  //skip the insterted function calls
-  ++I;
 }
 
 static void instrumentFunction(Function &F, GlobalVariable *LocFile,
@@ -539,18 +532,22 @@ static void instrumentFunction(Function &F, GlobalVariable *LocFile,
       break;
 
     case Instruction::Call:
+    {
+      Instruction *next = Inst.getNextNode();
       instrumentFunctionCall(I, Context, Module, LocFile);
       // move the iterator in order to skip the call we just inserted
       ++I;
+      while (&*std::next(I) != next){
+          ++I;
+      }
       break;
-
+    }
     case Instruction::Ret:
       insertBacktraceStepOutCall(I, Context, Module);
       break;
     default:
       break;
     }
-    // instrumentLocks(I, Context, Module, LocFile);
   }
 
   // skip empty functions, as those are probably just declarations
@@ -600,8 +597,9 @@ static void findGlobalVariablesDebugInfo(Module &M,
     SmallVector<DIGlobalVariableExpression *, 1> Debuginfo;
     GV.getDebugInfo(Debuginfo);
     if (Debuginfo.size() == 0) {
-      errs() << "global variable " << GV.getName() << " has no debug info\n";
-      return;
+      // the values are usually nameless so this does nothing
+      //errs() << "global variable " << GV.getName() << " has no debug info\n";
+      continue;
     }
     DIGlobalVariableExpression *Digve = Debuginfo[0];
     DIGlobalVariable *Digv = Digve->getVariable();
