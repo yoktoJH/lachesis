@@ -31,10 +31,11 @@ void set_thread_creation_segment(ryml::NodeRef segment,AccessData& access){
     ryml::NodeRef location = waypoint["location"];
     location.set_map();
     location["file_name"].set_serialized(access.thread_data.create_location.file);
+    location["file_name"].set_val_style(ryml::VAL_DQUO);
     location["line"].set_serialized(access.thread_data.create_location.line);
     location["column"].set_serialized(access.thread_data.create_location.column);
     location["function"].set_serialized(access.thread_data.func_name);
-    
+    location["function"].set_val_style(ryml::VAL_DQUO);
 }
 
 void set_access_waypoint(ryml::NodeRef waypoint, AccessData access){
