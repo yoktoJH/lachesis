@@ -4,15 +4,19 @@
 #include <filesystem>
 #include <cstdio>
 #include <iostream>
+#include <fstream>
 
-uuids::uuid_random_generator get_generator(){
-    std::random_device rd;
-    auto seed_data = std::array<int, std::mt19937::state_size> {};
-    std::generate(std::begin(seed_data), std::end(seed_data), std::ref(rd));
-    std::seed_seq seq(std::begin(seed_data), std::end(seed_data));
-    std::mt19937 generator(seq);
-    uuids::uuid_random_generator gen{generator};
-    return gen;
+const uuids::uuid get_uuid(){
+    static std::mt19937 generator = []{
+        std::random_device rd;
+        auto seed_data = std::array<int, std::mt19937::state_size> {};
+        std::generate(std::begin(seed_data), std::end(seed_data), std::ref(rd));
+        std::seed_seq seq(std::begin(seed_data), std::end(seed_data));
+        return std::mt19937(seq);
+    }();
+    
+    static uuids::uuid_random_generator gen{generator};
+    return gen();
 }
 
 void set_thread_creation_segment(ryml::NodeRef segment,AccessData& access){
@@ -23,7 +27,7 @@ void set_thread_creation_segment(ryml::NodeRef segment,AccessData& access){
     waypoint.set_map();
     waypoint["type"].set_val("function_enter");
     waypoint["action"].set_val("follow");
-    waypoint["thread_id"].set_val(0);
+    waypoint["thread_id"].set_serialized(0);
     ryml::NodeRef location = waypoint["location"];
     location.set_map();
     location["file_name"].set_serialized(access.thread_data.create_location.file);
@@ -78,10 +82,11 @@ void set_content(ryml::NodeRef content,AccessData& access1, AccessData& access2)
 void set_metadata(ryml::NodeRef metadata){
     metadata.set_map();
     metadata["format_version"].set_val("2.2");
-    static auto generator = get_generator();
-    metadata["uuid"].set_serialized(uuids::to_string(generator()));
+    std::string uuid = uuids::to_string(get_uuid());
+    metadata["uuid"].set_serialized(uuid);
     metadata["creation_time"].set_val("2025-10-01T13:00:00Z");
     ryml::NodeRef producer = metadata["producer"];
+    producer.set_map();
     producer["name"].set_val("Moirae");
     producer["version"].set_val("1.0");
     ryml::NodeRef task = metadata["task"];
@@ -96,8 +101,9 @@ void set_metadata(ryml::NodeRef metadata){
     
 }
 
+static std::mutex witness_mutex;
 void create_witness(AccessData access1,AccessData access2){
-    
+    std::lock_guard lock(witness_mutex);
     const std::filesystem::path witness_path{"witness.yml"};
     if (std::filesystem::exists(witness_path))
     {
@@ -116,10 +122,13 @@ void create_witness(AccessData access1,AccessData access2){
 
     set_content(entry["content"],access1,access2);
 
-    FILE* witness_file = std::fopen("witness.yml","w");
+    /*FILE* witness_file = std::fopen("witness.yml","w");
     if (witness_file == nullptr){
         std::cerr <<"Failed to open the witness output file\n";
         return;
     }
-    ryml::emit_yaml(witness, witness_file);
+    ryml::emit_yaml(witness,witness.root_id(), witness_file);*/
+    std::string s;
+    std::ofstream witness_file(witness_path);
+    witness_file << witness; // works with any stream having .operator<<() and .write()
 }
