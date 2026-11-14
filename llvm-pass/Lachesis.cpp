@@ -523,8 +523,6 @@ static void instrumentFunctionCall(inst_iterator &I, LLVMContext &context,
     insertVerifierAtomic(I, context, Module);
   }
 //svcomp -----------------------------------------------------
-  //skip the insterted function calls
-  ++I;
 }
 
 static void instrumentFunction(Function &F, GlobalVariable *LocFile,
@@ -545,11 +543,14 @@ static void instrumentFunction(Function &F, GlobalVariable *LocFile,
       ++I;
       break;
 
-    case Instruction::Call:
+    case Instruction::Call: {
+      Instruction *NextOrig = Inst.getNextNode();
       instrumentFunctionCall(I, Context, Module, LocFile);
       // move the iterator in order to skip the call we just inserted
-      ++I;
+      while (&*std::next(I) != NextOrig)
+	++I;
       break;
+    }
 
     case Instruction::Ret:
       insertBacktraceStepOutCall(I, Context, Module);
