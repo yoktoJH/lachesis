@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <iostream>
 #include <fstream>
+#include <ranges>
+#include <unordered_map>
 
 const uuids::uuid get_uuid(){
     static std::mt19937 generator = []{
@@ -19,7 +21,7 @@ const uuids::uuid get_uuid(){
     return gen();
 }
 
-void set_thread_creation_segment(ryml::NodeRef segment,AccessData& access){
+void set_thread_creation_segment(ryml::NodeRef segment,threadData& td,int parent){
     segment.set_seq();
     ryml::NodeRef item = segment.append_child();
     item.set_map();
@@ -27,14 +29,15 @@ void set_thread_creation_segment(ryml::NodeRef segment,AccessData& access){
     waypoint.set_map();
     waypoint["type"].set_val("function_enter");
     waypoint["action"].set_val("follow");
-    waypoint["thread_id"].set_serialized(0);
+    waypoint["thread_id"].set_serialized(parent);
     ryml::NodeRef location = waypoint["location"];
     location.set_map();
-    location["file_name"].set_serialized(access.thread_data.create_location.file);
-    location["line"].set_serialized(access.thread_data.create_location.line);
-    location["column"].set_serialized(access.thread_data.create_location.column);
-    location["function"].set_serialized(access.thread_data.func_name);
-    
+    location["file_name"].set_serialized(td.create_location.file);
+    location["file_name"].set_val_style(ryml::VAL_DQUO);
+    location["line"].set_serialized(td.create_location.line);
+    location["column"].set_serialized(td.create_location.column);
+    location["function"].set_serialized(td.func_name);
+    location["function"].set_val_style(ryml::VAL_DQUO);
 }
 
 void set_access_waypoint(ryml::NodeRef waypoint, AccessData access){
@@ -65,23 +68,47 @@ void set_data_race_segment(ryml::NodeRef segment,AccessData& access1, AccessData
     set_access_waypoint(t2_item["waypoint"],access2);
 }
 
+int set_thread_create_history(ryml::NodeRef content, std::vector<threadData>& history){
+    static int tid=0;
+    static std::unordered_map<THREADID,int> created_threads;
+    int parent = 0;
+    for (auto& td : history | std::views::reverse){
+        if (created_threads.contains(td.tid))
+        {
+            parent = created_threads[td.tid];
+            continue;
+        }
+        
+        ryml::NodeRef item = content.append_child();
+        item.set_map();
+        set_thread_creation_segment(item["segment"], td, parent);
+        parent=++tid;
+        created_threads[td.tid] = parent;
+    }
+    return parent;
+}
+
 void set_content(ryml::NodeRef content,AccessData& access1, AccessData& access2){
     content.set_seq();
+    
+    if (access1.variable_data.thread != 0)
+    {
+       access1.variable_data.thread = set_thread_create_history(content,access1.thread_create_history);
+    }
+    
 
-    ryml::NodeRef t1_item = content.append_child();
-    t1_item.set_map();
-    set_thread_creation_segment(t1_item["segment"],access1);
+    if (access2.variable_data.thread != 0)
+    {
+        access2.variable_data.thread = set_thread_create_history(content,access2.thread_create_history);
+    }
 
-    ryml::NodeRef t2_item = content.append_child();
-    t2_item.set_map();
-    set_thread_creation_segment(t2_item["segment"],access2);
     
     ryml::NodeRef race_item = content.append_child();
     race_item.set_map();
     set_data_race_segment(race_item["segment"],access1,access2);
 }
 
-void set_metadata(ryml::NodeRef metadata){
+void set_metadata(ryml::NodeRef metadata,std::string file_name){
     metadata.set_map();
     metadata["format_version"].set_val("2.2");
     metadata["format_version"].set_val_style(ryml::VAL_DQUO);
@@ -102,10 +129,11 @@ void set_metadata(ryml::NodeRef metadata){
     ryml::NodeRef input_files = task["input_files"];
     input_files.set_seq();
     auto tmp= input_files.append_child();
-    tmp.set_val("test_test.c");
+    tmp.set_serialized(file_name);
     tmp.set_val_style(ryml::VAL_DQUO);
-    task["input_file_hashes"].set_val("./test_test.c : f4f657126c15d43da20c40fb3af1c7a4864ce85120244d63e5fd18572b66f4ca");
-    task["input_file_hashes"].set_val_style(ryml::VAL_DQUO);
+    ryml::NodeRef hashes =  task["input_file_hashes"];
+    hashes.set_map();
+    hashes["__FILE__"].set_val("__HASH__");
     task["specification"].set_val("G ! data-race");
     task["specification"].set_val_style(ryml::VAL_DQUO);
     task["data_model"].set_val("ILP32");
@@ -118,12 +146,11 @@ void set_metadata(ryml::NodeRef metadata){
 static std::mutex witness_mutex;
 void create_witness(AccessData access1,AccessData access2){
     std::lock_guard lock(witness_mutex);
-    const std::filesystem::path witness_path{"witness.yml"};
-    if (std::filesystem::exists(witness_path))
+    static bool witness_generated = false;    
+    if (witness_generated)
     {
         return;
     }
-    
 
     ryml::Tree witness;
     ryml::NodeRef root = witness.rootref();
@@ -132,17 +159,12 @@ void create_witness(AccessData access1,AccessData access2){
 
     entry.set_map();
     entry["entry_type"].set_val("violation_sequence");
-    set_metadata(entry["metadata"]);
+    set_metadata(entry["metadata"], access1.variable_data.location.file);
 
     set_content(entry["content"],access1,access2);
 
-    /*FILE* witness_file = std::fopen("witness.yml","w");
-    if (witness_file == nullptr){
-        std::cerr <<"Failed to open the witness output file\n";
-        return;
-    }
-    ryml::emit_yaml(witness,witness.root_id(), witness_file);*/
-    std::string s;
+    const std::filesystem::path witness_path{"witness.yml"};
     std::ofstream witness_file(witness_path);
-    witness_file << witness; // works with any stream having .operator<<() and .write()
+    witness_file << witness; 
+    witness_generated=true;
 }

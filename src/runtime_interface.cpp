@@ -106,6 +106,8 @@ extern "C"
         // atomrace_init();
         // eraser_init();
         // fasttrack_init();
+        call_thread_create_callbacks(0);//main thread is started
+    
     }
 
     // TODO make cmake configurable
