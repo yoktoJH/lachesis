@@ -17,17 +17,20 @@ extern "C"{
     }
     
     unsigned long __VERIFIER_nondet_ulong(){
-        int type = random_number(0,3);
+        int type = random_number(0,4);
         switch (type)
         {
         case 0:
             return 0;
             break;
-        case 1:
-            return 1;
-            break;
+	case 1:
+	    return 1;
+	    break;
         case 2:
-            return ULONG_MAX/4;
+            return 2;
+            break;
+        case 3:
+            return random_number(3,128);
             break;
         }
         return random_number(0ul,ULONG_MAX);
@@ -37,12 +40,24 @@ extern "C"{
         return __VERIFIER_nondet_ulong();
     }
 
+    long long __VERIFIER_nondet_longlong(){
+        return __VERIFIER_nondet_ulong();
+    }
+
+    unsigned int __VERIFIER_nondet_uint(){
+        return __VERIFIER_nondet_ulong();
+    }
+
     int __VERIFIER_nondet_int(){
         return __VERIFIER_nondet_ulong();
     }
 
     unsigned char __VERIFIER_nondet_uchar(){
         return __VERIFIER_nondet_ulong();
+    }
+
+    char __VERIFIER_nondet_char(){
+	return __VERIFIER_nondet_ulong();
     }
 
     unsigned char __VERIFIER_nondet_bool(){
