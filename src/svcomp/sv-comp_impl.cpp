@@ -3,6 +3,7 @@
 #include <mutex>
 #include <ryml_all.hpp>
 #include "uuid/uuid.h"
+#include <assert.h>
 
 static std::mutex global_lock;
 
@@ -22,18 +23,14 @@ extern "C"{
         {
         case 0:
             return 0;
-            break;
 	case 1:
 	    return 1;
-	    break;
         case 2:
             return 2;
-            break;
         case 3:
-            return random_number(3,128);
-            break;
+            return random_number(3ul,128ul);
         }
-        return random_number(0ul,ULONG_MAX);
+        return random_number(129ul,ULONG_MAX);
     }
 
     long __VERIFIER_nondet_long(){
@@ -79,6 +76,7 @@ extern "C"{
         }
     }
 
+    void __VERIFIER_assert(int cond) { if (!(cond)) { ERROR: {abort();} } return; }
 }
 
 
