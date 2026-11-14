@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <ranges>
+#include <unordered_map>
 
 const uuids::uuid get_uuid(){
     static std::mt19937 generator = []{
@@ -69,14 +70,22 @@ void set_data_race_segment(ryml::NodeRef segment,AccessData& access1, AccessData
 
 int set_thread_create_history(ryml::NodeRef content, std::vector<threadData>& history){
     static int tid=0;
+    static std::unordered_map<THREADID,int> created_threads;
     int parent = 0;
     for (auto& td : history | std::views::reverse){
+        if (created_threads.contains(td.tid))
+        {
+            parent = created_threads[td.tid];
+            continue;
+        }
+        
         ryml::NodeRef item = content.append_child();
         item.set_map();
         set_thread_creation_segment(item["segment"], td, parent);
         parent=++tid;
+        created_threads[td.tid] = parent;
     }
-    return tid;
+    return parent;
 }
 
 void set_content(ryml::NodeRef content,AccessData& access1, AccessData& access2){

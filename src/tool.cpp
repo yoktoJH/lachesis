@@ -214,7 +214,8 @@ VOID SYNC_BeforeJoin(JOINFUNPTR callback) {
 AccessData create_access_data(ACCESSREPORT access) 
 {
     std::vector<threadData> t_history={};
-    thread_info t= svcomp_get_thread_info(access.thread);
+    THREADID tid = access.thread;
+    thread_info t = svcomp_get_thread_info(tid);
     
     AccessData a{
         .variable_data=access,
@@ -225,9 +226,11 @@ AccessData create_access_data(ACCESSREPORT access)
     {
         threadData d = {
             .create_location= {t.file_name,t.line,t.column},
-            .func_name=t.func_name
+            .func_name=t.func_name,
+            .tid=tid
         };
-        t = svcomp_get_thread_info(t.parent_thread.value());
+        tid =t.parent_thread.value();
+        t = svcomp_get_thread_info(tid);
         t_history.emplace_back(std::move(d));
     }
     
