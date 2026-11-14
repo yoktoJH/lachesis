@@ -1,6 +1,7 @@
 #pragma once
 #include "types.h"
 #include "lachesis_types.h"
+#include <vector>
 
 struct threadData{
     LOCATION create_location;
@@ -11,7 +12,8 @@ struct AccessData
 {
   ACCESSREPORT variable_data;
   std::string func_name;
-  threadData thread_data;
+  //contains information on the thread creation chain from the conficting one to the main (TID 0)
+  std::vector<threadData> thread_create_history;
 };
 
 

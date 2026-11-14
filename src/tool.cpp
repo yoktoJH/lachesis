@@ -3,6 +3,7 @@
 #include "thread.h"
 #include "callback.h"
 #include "svcomp/witness.h"
+#include <vector>
 //---------------------------------------------------------------------------------------------------------------------
 //Before callbacks
 VOID ACCESS_BeforeMemoryRead(MEMREADAVFUNPTR callback) {
@@ -208,25 +209,37 @@ VOID SYNC_BeforeJoin(JOINFUNPTR callback) {
     register_join_callback(callback, HookPosition::Before);
 }
 
+/*************************** SVCOMP ****************************/
+
+AccessData create_access_data(ACCESSREPORT access) 
+{
+    std::vector<threadData> t_history={};
+    thread_info t= svcomp_get_thread_info(access.thread);
+    
+    AccessData a{
+        .variable_data=access,
+        .func_name=t.stacktrace.back().function_name,
+    };
+
+    while (t.parent_thread.has_value())
+    {
+        threadData d = {
+            .create_location= {t.file_name,t.line,t.column},
+            .func_name=t.func_name
+        };
+        t = svcomp_get_thread_info(t.parent_thread.value());
+        t_history.emplace_back(std::move(d));
+    }
+    
+    a.thread_create_history = std::move(t_history);
+    return a;
+}
+
+
 VOID REPORT_DataRace(ACCESSREPORT access1, ACCESSREPORT access2){
-    thread_info t1 = svcomp_get_thread_info(access1.thread);
-    AccessData a1{
-        .variable_data=access1,
-        .func_name=t1.stacktrace.back().function_name,
-        .thread_data={
-            .create_location= {t1.file_name,t1.line,t1.column},
-            .func_name=t1.func_name
-        }
-    };
-    auto t2 = svcomp_get_thread_info(access2.thread);
-    AccessData a2{
-        .variable_data=access2,
-        .func_name=t2.stacktrace.back().function_name,
-        .thread_data={
-            .create_location= {t2.file_name,t2.line,t2.column},
-            .func_name=t2.func_name
-        }
-    };
+    
+    AccessData a1 = create_access_data(access1);
+    AccessData a2 = create_access_data(access2);
 
     create_witness(a1,a2);
 }

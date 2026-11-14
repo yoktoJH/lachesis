@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <iostream>
 #include <fstream>
+#include <ranges>
 
 const uuids::uuid get_uuid(){
     static std::mt19937 generator = []{
@@ -19,7 +20,7 @@ const uuids::uuid get_uuid(){
     return gen();
 }
 
-void set_thread_creation_segment(ryml::NodeRef segment,AccessData& access){
+void set_thread_creation_segment(ryml::NodeRef segment,threadData& td,int parent){
     segment.set_seq();
     ryml::NodeRef item = segment.append_child();
     item.set_map();
@@ -27,14 +28,14 @@ void set_thread_creation_segment(ryml::NodeRef segment,AccessData& access){
     waypoint.set_map();
     waypoint["type"].set_val("function_enter");
     waypoint["action"].set_val("follow");
-    waypoint["thread_id"].set_serialized(0);
+    waypoint["thread_id"].set_serialized(parent);
     ryml::NodeRef location = waypoint["location"];
     location.set_map();
-    location["file_name"].set_serialized(access.thread_data.create_location.file);
+    location["file_name"].set_serialized(td.create_location.file);
     location["file_name"].set_val_style(ryml::VAL_DQUO);
-    location["line"].set_serialized(access.thread_data.create_location.line);
-    location["column"].set_serialized(access.thread_data.create_location.column);
-    location["function"].set_serialized(access.thread_data.func_name);
+    location["line"].set_serialized(td.create_location.line);
+    location["column"].set_serialized(td.create_location.column);
+    location["function"].set_serialized(td.func_name);
     location["function"].set_val_style(ryml::VAL_DQUO);
 }
 
@@ -66,24 +67,30 @@ void set_data_race_segment(ryml::NodeRef segment,AccessData& access1, AccessData
     set_access_waypoint(t2_item["waypoint"],access2);
 }
 
+int set_thread_create_history(ryml::NodeRef content, std::vector<threadData>& history){
+    static int tid=0;
+    int parent = 0;
+    for (auto& td : history | std::views::reverse){
+        ryml::NodeRef item = content.append_child();
+        item.set_map();
+        set_thread_creation_segment(item["segment"], td, parent);
+        parent=++tid;
+    }
+    return tid;
+}
+
 void set_content(ryml::NodeRef content,AccessData& access1, AccessData& access2){
     content.set_seq();
-    int tid=1;
+    
     if (access1.variable_data.thread != 0)
     {
-        ryml::NodeRef t1_item = content.append_child();
-        t1_item.set_map();
-        set_thread_creation_segment(t1_item["segment"],access1);
-        access1.variable_data.thread = tid++;
+       access1.variable_data.thread = set_thread_create_history(content,access1.thread_create_history);
     }
     
 
     if (access2.variable_data.thread != 0)
     {
-        ryml::NodeRef t2_item = content.append_child();
-        t2_item.set_map();
-        set_thread_creation_segment(t2_item["segment"],access2);
-        access2.variable_data.thread = tid;
+        access2.variable_data.thread = set_thread_create_history(content,access2.thread_create_history);
     }
 
     
