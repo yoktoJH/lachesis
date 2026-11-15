@@ -75,8 +75,6 @@ extern "C"{
             CONSOLE_NOPREFIX("\n Assert failed \n");        
         }
     }
-
-    void __VERIFIER_assert(int cond) { if (!(cond)) { ERROR: {abort();} } return; }
 }
 
 
