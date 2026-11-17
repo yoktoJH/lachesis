@@ -187,6 +187,10 @@ VOID beforeMemoryAccess(Operation op, THREADID tid, ADDRINT addr,
       ACCESSREPORT a1 ={ it->second.op==WRITE?memory_operation_t::WRITE:memory_operation_t::READ, it->second.thread,it->second.variable,it->second.location};
       ACCESSREPORT a2 ={ op==WRITE?memory_operation_t::WRITE:memory_operation_t::READ, tid,variable,location};
       REPORT_DataRace(a1,a2);
+
+      // Exit after detecting a race
+      // TODO: this should probably be configurable
+      exit(0);
     }
   }
   else

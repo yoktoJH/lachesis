@@ -35,7 +35,7 @@ void set_thread_creation_segment(ryml::NodeRef segment,threadData& td,int parent
     location["file_name"].set_serialized(td.create_location.file);
     location["file_name"].set_val_style(ryml::VAL_DQUO);
     location["line"].set_serialized(td.create_location.line);
-    location["column"].set_serialized(td.create_location.column);
+    //location["column"].set_serialized(td.create_location.column);
     location["function"].set_serialized(td.func_name);
     location["function"].set_val_style(ryml::VAL_DQUO);
 }
@@ -51,7 +51,7 @@ void set_access_waypoint(ryml::NodeRef waypoint, AccessData access){
     location["file_name"].set_serialized(access.variable_data.location.file);
     location["file_name"].set_val_style(ryml::VAL_DQUO);
     location["line"].set_serialized(access.variable_data.location.line);
-    location["column"].set_serialized(access.variable_data.location.column);
+    //location["column"].set_serialized(access.variable_data.location.column);
     location["function"].set_serialized(access.func_name);
     location["function"].set_val_style(ryml::VAL_DQUO);
 }
@@ -116,13 +116,13 @@ void set_metadata(ryml::NodeRef metadata,std::string file_name){
     metadata["uuid"].set_serialized(uuid);
     metadata["uuid"].set_val_style(ryml::VAL_DQUO);
 
-    metadata["creation_time"].set_val("2025-10-01T13:00:00Z");
+    metadata["creation_time"].set_val("__TIME__");
     metadata["creation_time"].set_val_style(ryml::VAL_DQUO);
     ryml::NodeRef producer = metadata["producer"];
     producer.set_map();
     producer["name"].set_val("Moirae");
     producer["name"].set_val_style(ryml::VAL_DQUO);
-    producer["version"].set_val("1.0");
+    producer["version"].set_val("0.1");
     producer["version"].set_val_style(ryml::VAL_DQUO);
     ryml::NodeRef task = metadata["task"];
     task.set_map();
@@ -136,7 +136,7 @@ void set_metadata(ryml::NodeRef metadata,std::string file_name){
     hashes["__FILE__"].set_val("__HASH__");
     task["specification"].set_val("G ! data-race");
     task["specification"].set_val_style(ryml::VAL_DQUO);
-    task["data_model"].set_val("ILP32");
+    task["data_model"].set_val("__DATA_MODEL__");
     task["data_model"].set_val_style(ryml::VAL_DQUO);
     task["language"].set_val("C");
     task["language"].set_val_style(ryml::VAL_DQUO);
